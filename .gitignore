@@ -1,0 +1,60 @@
+# ===== C/C++ =====
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.exe
+*.out
+*.app
+
+# ===== CMake =====
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+!Makefile
+*.cmake
+!CMakeLists.txt
+
+# ===== Build =====
+build/
+install/
+log/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+.eggs/
+
+# ===== Virtual Environment =====
+venv/
+.venv/
+env/
+
+# ===== IDE / Editor =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ===== ROS2 =====
+*_pb2.py
+*_pb2_grpc.py
+
+# ===== 官网 workspace（不纳入版本管理） =====
+unitree_mujoco/
+unitree_sdk2/
+unitree_ros2/
+
+# ===== Core dumps =====
+core
+*.core

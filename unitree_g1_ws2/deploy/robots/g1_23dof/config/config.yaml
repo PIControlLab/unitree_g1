@@ -1,0 +1,94 @@
+domain_id: 0
+mode_machine: 4
+
+FSM:
+  _: # enabled fsms
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    Velocity:
+      id: 3
+      type: RLBase
+    # 新增：23DOF 跳舞模仿任务
+    Mimic_Dance_102:
+      id: 101
+      type: Mimic
+    WBC:
+      id: 10
+      type: WBC
+
+  Passive:
+    transitions: 
+      FixStand: LT + up.on_pressed
+    mode: [
+      1,1,1,1,1,1,    # L leg
+      1,1,1,1,1,1,    # R leg
+      1,1,1,           # waist
+      1,1,1,1,1,1,1,
+      1,1,1,1,1,1,1,
+    ]
+    kd: [
+      3,3,3,3,3,3,
+      3,3,3,3,3,3,
+      3,3,3,
+      3,3,3,3,3,3,3,  
+      3,3,3,3,3,3,3,  
+    ]
+
+  FixStand:
+    transitions: 
+      Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
+    kp: [
+      100, 100, 100, 150, 40, 40,   # L leg
+      100, 100, 100, 150, 40, 40,   # R leg
+      200,200,200,                         # waist
+      40,40,40,40,40,40,40,
+      40,40,40,40,40,40,40,
+    ]
+    kd: [
+      2,2,2,4,2,2,     # L leg
+      2,2,2,4,2,2,     # R leg
+      5,5,5,            # waist
+      10,10,10,10,10,10,10,
+      10,10,10,10,10,10,10,
+    ]
+    ts: [0, 3]
+    qs: [
+      [],
+      [ -0.1, 0,0,0.3,-0.2,0,
+        -0.1, 0,0,0.3,-0.2,0,
+        0,0,0,
+        0, 0.25,0,0.97,0.15, 0,0,
+        0, -0.25,0,0.97,-0.15, 0,0
+      ]
+    ]
+
+  Velocity:
+    transitions:
+      Mimic_Dance_102: LT + down.on_pressed
+      WBC: RB + up.on_pressed
+      FixStand: RB + down.on_pressed
+    policy_dir: config/policy/unitree_g1_23dof_velocity/
+
+  # 核心新增：23DOF 跳舞任务完整配置（和29DOF对齐）
+  Mimic_Dance_102:
+    transitions: 
+      Velocity: RB + X.on_pressed      # 按下RB+X 切回行走模式
+    fps: 60                            # 动作帧率
+    # 动作文件路径（适配23DOF部署目录）
+    motion_file: config/policy/mimic/dance_102/params/G1_Take_102.bvh_60hz.csv
+    # 训练好的跳舞策略路径
+    policy_dir: config/policy/mimic/dance_102/
+    time_start: 0.0               # 动作起始时间
+    time_end: 28.0                     # 动作结束时间
+  
+  WBC:
+    # RB+X 手动退出不再直接切 Velocity，而是进入 recovery 平滑过渡
+    # recovery 完成后由代码自动切 Velocity（见 State_WBC.cpp）
+    policy_path: config/policy/wbc/model.onnx
+    motion_path: config/policy/wbc/motion_data/
+    start_idx: 100
+    end_idx: 300
+    safe_projgravity_threshold: 0.9
