@@ -1,13 +1,13 @@
 # Unitree G1 23DoF
 
-G1 23DoF 的策略部署与控制项目。GUI 操作 `g1_ctrl`，控制器通过 Unitree DDS
-连接 MuJoCo 或 G1 真机。
+G1 23DoF 的策略部署与控制项目。控制器源码编译后生成可执行文件 `g1_ctrl`，
+GUI 负责启动该程序并发送操作指令；`g1_ctrl` 通过 Unitree DDS 连接 MuJoCo 或 G1 真机。
 
 ## 目录
 
 | 路径 | 内容 |
 |---|---|
-| `unitree_g1_ws2/deploy/` | `g1_ctrl`、FSM、Velocity、Mimic、WBC、UFO 策略与模型 |
+| `unitree_g1_ws2/deploy/` | 控制器源码、FSM、Velocity、Mimic、WBC、UFO 策略与模型 |
 | `unitree_g1_ws/src/g1_gui/` | PyQt5 GUI 控制台 |
 | `unitree_mujoco/` | [宇树官方 MuJoCo 仿真器](https://github.com/unitreerobotics/unitree_mujoco) |
 | `unitree_ros2/` | [宇树官方 ROS 2 消息与 CycloneDDS 工作空间](https://github.com/unitreerobotics/unitree_ros2) |
@@ -43,6 +43,9 @@ cmake -S unitree_g1_ws2/deploy/robots/g1_23dof \
 cmake --build unitree_g1_ws2/deploy/robots/g1_23dof/build --parallel 2
 ```
 
+编译生成 `unitree_g1_ws2/deploy/robots/g1_23dof/build/g1_ctrl`，下文简称
+`g1_ctrl`。
+
 ### 编译 GUI
 
 ```bash
@@ -51,7 +54,7 @@ cd unitree_g1_ws
 cd ..
 ```
 
-### MuJoCo（仅 x86_64 Sim-to-sim）
+### MuJoCo（仅 x86_64 Sim-to-sim 需要）
 
 ```bash
 cmake -S unitree_mujoco/simulate \
@@ -107,8 +110,6 @@ GUI 打开后：
 3. 进入 Velocity/UFO 保持平衡，再测试其他状态。结束时，应确定机器人有吊带或其他支撑后，进入 Passive 模式释放控制器。
 4. 关闭 GUI；GUI 会停止由它启动的 `g1_ctrl`。
 
-当前 GUI 启动的 `g1_ctrl` 默认使用 `eth0`。
-
 ## GUI 操作
 
 | 当前状态 | 可以进入 |
@@ -131,7 +132,7 @@ GUI ──> /dev/shm/unitree_ufo_selection.json  ──> g1_ctrl
 GUI <── /dev/shm/unitree_fsm_state.json      <── g1_ctrl
 ```
 
-## UDP 触发（可选）
+## 可选：UDP 触发
 
 GUI 启动后监听 UDP `0.0.0.0:9876`。另一台电脑与 GUI 主机网络互通时，可运行：
 
@@ -149,36 +150,25 @@ python3 udp_send.py <运行GUI的电脑IP> 9876
 
 UDP 不启动 `g1_ctrl`，也不返回 FSM 状态。仅在可信网络中使用。
 
-## MuJoCo 本地配置
+## 补充说明：MuJoCo 本地配置
 
 以下配置位于宇树官方 `unitree_mujoco` 代码中，本项目为 WSL 仿真做了本地调整。
 
 ### DDS 网卡
 
-MuJoCo 的默认 DDS 网卡在 `unitree_mujoco/simulate/config.yaml` 中配置：
+WSL 使用 `eth0`，当前默认配置无需修改：
 
-```yaml
-interface: "eth0"
-```
+- `unitree_mujoco/simulate/config.yaml`：`interface: "eth0"`
+- `setup.sh`：`NetworkInterface name="eth0"`
+- `unitree_g1_ws2/deploy/include/param.h`：`default_value("eth0")`
 
-- WSL：使用 `eth0`。当前 `unitree_mujoco/simulate/config.yaml`、根目录
-  `setup.sh` 和 `g1_ctrl` 默认值均为 `eth0`，无需修改。
-- 原生 Linux 本机仿真：建议将上述值改为 `lo`，同时将根目录 `setup.sh` 中
-  `NetworkInterface` 的名称改为 `lo`，并使用 `./g1_ctrl --network lo` 启动控制器。
-  如果仍由 GUI 启动控制器，则将 `unitree_g1_ws2/deploy/include/param.h` 中的默认网卡
-  从 `eth0` 改为 `lo`，重新编译控制器。
+原生 Linux 本机仿真使用 `lo`，将以上三个参数分别改为：
 
-也可以不修改 `config.yaml`，启动 MuJoCo 时使用 `-n` 临时覆盖：
+- `unitree_mujoco/simulate/config.yaml`：`interface: "lo"`
+- `setup.sh`：`NetworkInterface name="lo"`
+- `unitree_g1_ws2/deploy/include/param.h`：`default_value("lo")`
 
-```bash
-# WSL
-./unitree_mujoco -i 0 -n eth0 -r g1 -s scene_23dof.xml -t 1
-
-# 原生 Linux
-./unitree_mujoco -i 0 -n lo -r g1 -s scene_23dof.xml -t 1
-```
-
-MuJoCo 与 `g1_ctrl` 必须使用相同的 DDS Domain 和网卡。
+修改 `param.h` 后需要重新编译 `g1_ctrl`。
 
 ### 虚拟吊带
 
