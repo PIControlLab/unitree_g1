@@ -1,35 +1,31 @@
 # unitree_g1 环境安装与验证记录
 
-> 操作日期：2026-09-18  
-> 项目目录：`~/projects/unitree_g1`  
-> 系统：WSL2，Ubuntu 24.04.2 LTS（Noble），x86_64  
-> 目的：补齐本项目进行 C++ 编译、ROS 2 通信和 MuJoCo sim-to-sim 所需的开发环境。
+> 操作日期：2026-09-18
+> 项目目录：`/home/hanlichen/projects/unitree_g1`
+> 系统：WSL2、Ubuntu 24.04
+> 本报告第 1–10 节是当日安装与测试记录；其中“当前”“没有修改脚本”
+> 等措辞均指 2026-09-18，不代表现在的代码。
 
-## 0. 2026-09-23 当前工作树复核
+## 0. 2026-09-24 源码与环境复核
 
-本报告第 1–10 节记录 **2026-09-18 当时的安装与测试**；其中“没有修改项目脚本”“后续再适配路径”“只验证旧控制器 Passive”等句子只描述当次操作，不是今天的代码状态。当前源码结构和 FSM 见同目录《unitree_g1_sim_to_sim代码导读》。
+当前源码结构、FSM 和操作顺序分别见同目录
+《unitree_g1_sim_to_sim代码导读.md》和项目根目录 `BEGIN.md`。
+本节说明历史记录与现状的差别：
 
-- 当前本机仍可见 `unitree_sdk2/`、`unitree_mujoco/`、`unitree_ros2/`、ONNX Runtime 1.22.0 动态库和控制器构建目录；`cmake`、`colcon` 在 PATH 中。
-- 此后仓库工作树已出现多处尚未提交的源码与配置修改。控制器现有六个状态：Passive、FixStand、Velocity、Mimic、WBC、UFO；四种策略使用 `State_PolicyBase` 和 YAML schema 2。9 月 18 日的编译结果不能证明这些后来修改过的代码。
-- 本次已针对当前工作树重新执行 CMake 配置和 `g1_ctrl` 构建，结果为 `Built target g1_ctrl`；新构建的 `--version` 输出 `1.0.0.1`。这验证了编译、链接和基本命令行启动，**没有完成新代码的 DDS 联调、FSM 转换或运动测试**。
-- 根目录 `setup.sh` 已改为以脚本位置定位工作区，统一 ROS 2 Jazzy，并把 CycloneDDS 约束到 WSL `eth0`；`start_gui.sh` 已 source 它。GUI 也从源码位置推导项目根目录，不再硬编码旧路径。
-- 当前 `config/config.yaml` 为 Domain 0、`mode_machine=4`，并启用 UFO；GUI 提供 UFO latent 选择和实际 FSM 状态显示。过去的“仅五个状态”“GUI 状态纯推测”不再适用。
-- 9 月 18 日在 `eth0` 上完成的 Passive 短时联调仍是有效的**历史结果**，但不能外推到当前尚未运行验证的策略重构。真机连接前须重新进行 MuJoCo 动作和异常路径验证。
+- 控制器现有六个状态：Passive、FixStand、Velocity、Mimic、WBC、UFO；
+  四个策略状态共用 `State_PolicyBase` 和 YAML schema 2。
+- UFO 部署只有 policy ONNX 分片、catalog 和 29 个预计算 z NPZ；
+  不再包含 backward encoder、原始参考动作或 z 生成脚本。
+- 根目录 `setup.sh` 已按脚本位置定位 ROS 2 工作区，使用 Jazzy 和
+  WSL `eth0`；`start_gui.sh` 加载该环境。GUI 管理 `g1_ctrl`
+  并读取真实 FSM 状态。
+- 本机已有官方依赖目录、ONNX Runtime 1.22.0 动态库和控制器构建产物。
+  2026-09-24 的 `g1_ctrl` 编译通过，UFO catalog、29 个 z 文件及
+  policy 校验值通过静态检查；尚未据此证明新的 DDS、FSM 动作或实机行为。
+- 第 6 节的 Passive 短时 DDS 联调仅是 2026-09-18 的历史结果；
+  第 7、8 节的手工环境配置和命令保留作当日记录。
+  当前启动请以 `BEGIN.md` 和根目录 `setup.sh` 为准。
 
-当前仿真环境初始化建议在项目根目录执行：
-
-```bash
-source ./setup.sh
-```
-
-MuJoCo 仍须独立启动；建议显式给出 Domain、网络、机器人、场景和 IDL：
-
-```bash
-./unitree_mujoco -i 0 -n eth0 -r g1 -s scene_23dof.xml -t 1
-./g1_ctrl --network eth0
-```
-
-两条命令应分别在各自的构建目录运行；控制器只启动一个实例。第 7、8 节给出的手动初始化和启动参数保留为当时的验证记录；当前脚本已能完成相应环境初始化。
 ## 1. 2026-09-18 安装完成时的状态
 
 环境安装和主要构建验证已经完成：

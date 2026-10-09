@@ -1,223 +1,169 @@
 # Unitree G1 仿真：编译、启动与操作
 
-适用于当前仓库的 **G1 23DoF + MuJoCo + `g1_ctrl` + GUI** 仿真链路。默认项目路径：
-
-```text
-/home/hanlichen/projects/unitree_g1
-```
+适用于本项目的 **G1 23DoF + MuJoCo + `g1_ctrl` + GUI** 控制链路。
+以下命令以 `/home/hanlichen/projects/unitree_g1` 为项目根目录。
 
 ## 1. 编译
 
-加入或修改 UFO 的 C++ 文件、FSM 注册或控制器 CMake 后必须重新配置并编译。只修改
-ONNX、参考动作或 YAML 参数时不需要重编译控制器，重启 `g1_ctrl` 即可。
+### G1 控制器
 
-### 1.1 编译 G1 控制器（加入 UFO 后必须执行）
+修改 `unitree_g1_ws2/deploy` 中的 C++ 源码、FSM 注册或 CMake 配置后，
+从项目根目录重新配置并编译：
 
 ```bash
-cd /home/hanlichen/projects/unitree_g1
-
-cmake \
-  -S unitree_g1_ws2/deploy/robots/g1_23dof \
+cmake -S unitree_g1_ws2/deploy/robots/g1_23dof \
   -B unitree_g1_ws2/deploy/robots/g1_23dof/build \
   -DCMAKE_BUILD_TYPE=Release
-
-cmake --build \
-  unitree_g1_ws2/deploy/robots/g1_23dof/build \
-  --parallel 2
+cmake --build unitree_g1_ws2/deploy/robots/g1_23dof/build --parallel 2
 ```
 
-成功时最后应显示：
+控制器通过 CMake `GLOB_RECURSE` 收集 `src/*.cpp`；新增源码文件后必须先运行
+`cmake -S/-B`。仅修改部署 YAML、ONNX 或预计算 z 文件时，重启控制器即可。
 
-```text
-Built target g1_ctrl
-```
+### GUI
 
-必须执行第一条 `cmake -S/-B`：本项目通过 CMake `GLOB` 搜索 `src/*.cpp`，只有重新配置后
-新加入的 `State_UFO.cpp` 才会进入构建目标。
-
-### 1.2 编译 GUI
-
-加入或修改 GUI 按钮、ROS 2 Python 包后执行：
+修改 `g1_gui` 的 Python 源码或 ROS 2 包后运行：
 
 ```bash
-cd /home/hanlichen/projects/unitree_g1
 source /opt/ros/jazzy/setup.bash
 source unitree_ros2/cyclonedds_ws/install/setup.bash
-
 cd unitree_g1_ws
 colcon build --symlink-install --packages-select g1_gui
+cd ..
 ```
 
-### 1.3 编译 MuJoCo（首次安装或修改 MuJoCo 源码时执行）
+### MuJoCo
 
-UFO 本身没有修改 MuJoCo 源码，已有可执行文件时可跳过本节。
+首次安装或修改 MuJoCo 源码时构建。UFO 部署本身不修改仿真器：
 
 ```bash
-cd /home/hanlichen/projects/unitree_g1
-
-cmake \
-  -S unitree_mujoco/simulate \
+cmake -S unitree_mujoco/simulate \
   -B unitree_mujoco/simulate/build \
   -DCMAKE_BUILD_TYPE=Release
-
 cmake --build unitree_mujoco/simulate/build --parallel 2
 ```
 
 ## 2. 启动
 
-默认通信配置为 Domain `0`、接口 `eth0`。不要同时启动两个 `g1_ctrl`。
+当前 G1 控制器配置为 DDS Domain `0`；项目 `setup.sh` 将 CycloneDDS
+绑定到 WSL `eth0`。仿真器、GUI 和控制器应使用相同环境。
+同一时间只运行一个 `g1_ctrl`。
 
-### 2.1 终端 A：启动 MuJoCo
+终端 A：启动 MuJoCo。
 
 ```bash
 cd /home/hanlichen/projects/unitree_g1
 source ./setup.sh
-
 cd unitree_mujoco/simulate/build
 ./unitree_mujoco -i 0 -r g1 -s scene_23dof.xml -t 1
 ```
 
-`eth0` 已是默认接口，不需要再传 `-n eth0`。
-
-可在启动前检查 GPU 渲染：
-
-```bash
-glxinfo -B | grep -E 'direct rendering|Device:|Accelerated:|OpenGL renderer'
-```
-
-正确结果应包含 `D3D12 (NVIDIA GeForce RTX 3050 Ti Laptop GPU)` 和
-`Accelerated: yes`。GPU 只加速窗口渲染，动力学计算仍主要使用 CPU。
-
-### 2.2 终端 B：启动 GUI 和控制器
+终端 B：启动 GUI。
 
 ```bash
 cd /home/hanlichen/projects/unitree_g1
 ./start_gui.sh
 ```
 
-GUI 打开后，点击左侧 **G1 控制器（g1_ctrl）** 卡片中的“启动”。看到以下日志表示连接成功：
+GUI 不会启动 MuJoCo。打开后点击“G1 控制器 (g1_ctrl)”卡片中的“启动”，
+等待日志出现 `Connected to robot.` 和 `FSM: Start Passive`。
+GUI 通过共享内存 JSON 发送操作，`g1_ctrl` 直接通过 DDS 发送 lowcmd；
+当前链路不使用 `g1_bridge/g1_merger`。
 
-```text
-Connected to robot.
-FSM: Start Passive
-```
-
-如果需要直接观察控制器日志，可不用 GUI 启动控制器，改用：
+需要在终端直接运行控制器时：
 
 ```bash
 cd /home/hanlichen/projects/unitree_g1
 source ./setup.sh
-
 cd unitree_g1_ws2/deploy/robots/g1_23dof/build
 ./g1_ctrl --log
 ```
 
-手工启动 `g1_ctrl` 后不要再从 GUI 启动第二个控制器。
+直接运行时不要再从 GUI 启动第二个控制器。
+GUI 的进程卡片只管理它自己启动的实例。
 
-### 2.3 可选：UDP 触发
+## 3. 建议的仿真操作顺序
 
-GUI 运行时监听 `0.0.0.0:9876`：
+1. 启动 MuJoCo，保持虚拟吊带开启。
+2. 启动 `g1_ctrl`，确认进入 Passive。
+3. 确认 GUI 的速度摇杆回中，进入 FixStand，等待至少 3 秒。
+4. 在 MuJoCo 窗口用 `8` 或 `↓` 逐次放低机器人，让双脚接地。
+5. 进入 Velocity，先保持零速度观察，再测试小速度。
+6. 稳定后在 MuJoCo 窗口按 `9` 关闭吊带，再测试 WBC、Dance 或 UFO。
+
+通常从 Velocity 用 `LT+Up` 返回 FixStand，再用 `LT+B`
+返回 Passive；UFO 也可直接用 `LT+B` 返回 Passive。
+停止控制器后再关闭 MuJoCo。机器人摔倒时先停控制器，
+按 `Backspace` 重置 MuJoCo，再按上述顺序启动。
+
+## 4. FSM 与 UFO 任务
+
+实际转换以
+`unitree_g1_ws2/deploy/robots/g1_23dof/config/config.yaml` 为准：
+
+```text
+Passive  ─ LT+Up ─→ FixStand
+         └ LT+Y  ─→ UFO
+
+FixStand ─ LT+B  ─→ Passive
+         ├ RB+X  ─→ Velocity
+         └ LT+Y  ─→ UFO
+
+Velocity ─ LT+Up   ─→ FixStand
+         ├ LT+Down ─→ Mimic_Dance_102
+         ├ RB+Up   ─→ WBC
+         └ LT+Y    ─→ UFO
+
+Mimic_Dance_102 / WBC ─ RB+X 或动作结束 ─→ Velocity
+UFO ─ LT+B  ─→ Passive
+    ├ LT+Up ─→ FixStand
+    └ RB+X  ─→ Velocity
+```
+
+| 模式 | 作用 |
+|---|---|
+| Passive | 控制器初始状态 |
+| FixStand | 过渡到固定站立姿态 |
+| Velocity | 摇杆速度跟踪 |
+| Mimic_Dance_102 | 跟踪舞蹈参考片段 |
+| WBC | 播放 WBC 全身参考轨迹 |
+| UFO | 一个 UFO-FB policy，通过预计算 z 选择任务 |
+
+UFO 可从 Passive、FixStand、Velocity 进入。进入时先使用站立目标 z；
+进入 UFO 后，GUI 右侧显示 Tracking、Goal reaching、Reward inference
+三组任务按钮。点击按钮只切换 z，不切换 FSM 状态。
+Tracking 逐帧播放完后保持站立目标，不自动返回 Velocity；
+Goal reaching 和 Reward inference 使用固定 z，直到切换任务。
+当前任务清单为 5 条 Tracking 序列、15 个 Goal reaching 固定 z、
+9 个 Reward inference 固定 z。详见
+`unitree_g1_ws2/deploy/robots/g1_23dof/config/policy/ufo/README.md`。
+
+## 5. 可选 UDP 触发
+
+GUI 运行时监听 `0.0.0.0:9876`。可从另一终端使用：
 
 ```bash
 cd /home/hanlichen/projects/unitree_g1/unitree_g1_ws2/deploy
 python3 udp_send.py <运行GUI的电脑IP> 9876
 ```
 
-`1–6` 为速度指令，`7=WBC`、`8=Dance`、`9=UFO`。动作指令只在 `Velocity` 模式生效。
+`1–6` 为 Velocity 的两秒移动指令，`7=WBC`、`8=Dance`、
+`9=UFO`。触发仍受当前 FSM 可达关系限制；UDP 编号不直接选择 UFO z。
 
-## 3. 正确操作顺序
+## 6. 启动参数与排查
 
-1. 先启动 MuJoCo，保持虚拟吊带开启。
-2. 启动 GUI 和 `g1_ctrl`，等待进入 `Passive`。
-3. 确认速度摇杆回中，点击 `FixStand`，等待至少 3 秒。
-4. 在 MuJoCo 窗口逐次按 `8` 或 `↓`，缓慢放低机器人至双脚接地。
-5. 点击 `Velocity`，保持零速度观察 3–5 秒。
-6. 稳定后在 MuJoCo 窗口按 `9` 关闭吊带。
-7. 先测试小速度，再从 `Velocity` 进入 WBC、Dance 或 UFO。
+MuJoCo 命令中的 `-i 0` 指定 Domain 0，`-r g1` 指定机器人，
+`-s scene_23dof.xml` 指定场景，`-t 1` 指定 `unitree_hg` IDL。
+上游 `unitree_mujoco/simulate/config.yaml` 默认是 Go2、Domain 1；
+本项目启动时通过参数覆盖。WSL `eth0` 已是该配置中的网络接口。
 
-```text
-MuJoCo（吊带开启）
-  -> g1_ctrl（Passive）
-  -> FixStand，等待 3 秒
-  -> 缓慢放低至脚掌接地
-  -> Velocity，零速稳定 3–5 秒
-  -> 按 9 关闭吊带
-  -> 小速度测试
-  -> WBC / Dance / UFO
-```
+`g1_ctrl` 支持 `--help`、`--version`、`--log` 和
+`--network <接口>`；网络接口默认 `eth0`。
 
-正常停止：动作回到 `Velocity` → 速度归零 → `RB+Down` 回 `FixStand` → `LT+B` 回
-`Passive` → 停止控制器 → 关闭 MuJoCo。
+- 一直等待 `rt/lowstate`：确认 MuJoCo 已启动，Domain 为 `0`，接口为 `eth0`。
+- GUI 模式按钮不可用：先看“当前状态”；只有该状态可达的按钮会启用。
+- UFO 任务按钮不可见：先进入 UFO；任务列表来自 `latent_catalog.json`。
+- 控制命令重复：检查是否同时运行了两个 `g1_ctrl`。
+- 出现 `llvmpipe`：当前是软件渲染，可在启动 MuJoCo 前重新加载项目 `setup.sh` 并检查图形环境。
 
-机器人摔倒时先停止控制器，再按 `Backspace` 重置 MuJoCo，然后从上述顺序重新开始。
-
-## 4. 模式与跳转
-
-```text
-Passive
-  └─ LT+Up ──> FixStand
-
-FixStand
-  ├─ LT+B ───> Passive
-  └─ RB+X ───> Velocity
-
-Velocity
-  ├─ RB+Down ─> FixStand
-  ├─ LT+Down ─> Mimic_Dance_102 ── RB+X / 动作结束 ──> Velocity
-  ├─ RB+Up ───> WBC ────────────── RB+X / 动作结束 ──> Velocity
-  └─ LT+Y ────> UFO（GUI 选择 z）── RB+X / 动作结束 ──> Velocity
-```
-
-| 模式 | 效果 |
-|---|---|
-| `Passive` | 低刚度保护状态，也是控制器初始状态 |
-| `FixStand` | 3 秒插值到固定站立姿态 |
-| `Velocity` | 速度跟踪，可控制前后、横移和转向 |
-| `Mimic_Dance_102` | 跟踪约 28 秒的舞蹈动作 |
-| `WBC` | 播放当前 WBC 全身轨迹 |
-| `UFO` | 同一 UFO-FB policy；GUI 可选择 Tracking、Goal reaching、Reward inference 及对应 z |
-
-Dance、WBC 和 UFO 必须先进入 `Velocity`。进入 UFO 前先在 GUI 的“UFO 功能”和“z / 任务”下拉框中选择。倾倒或推理异常时策略可能自动进入
-`Passive`。
-
-## 5. 启动参数
-
-### 5.1 MuJoCo
-
-| 参数 | 作用 | 当前默认值 | 本项目启动值 |
-|---|---|---|---|
-| `-i`, `--domain_id` | DDS Domain | `1` | `0` |
-| `-n`, `--network` | DDS 接口 | `eth0` | 默认即可 |
-| `-r`, `--robot` | 机器人 | `go2` | `g1` |
-| `-s`, `--scene` | 场景 | `scene.xml` | `scene_23dof.xml` |
-| `-t`, `--idl_type` | `-1=自动`、`0=unitree_go`、`1=unitree_hg` | `-1` | `1` |
-
-`unitree_mujoco/simulate/config.yaml` 还提供：
-
-| 配置 | 默认值 | 作用 |
-|---|---:|---|
-| `use_joystick` | `0` | 使用 GUI 虚拟手柄；设为 `1` 时由 MuJoCo 读取物理手柄 |
-| `joystick_type` | `xbox` | 可选 `xbox`、`switch` |
-| `joystick_device` | `/dev/input/js0` | 物理手柄设备 |
-| `joystick_bits` | `16` | 手柄精度，部分设备使用 `8` |
-| `print_scene_information` | `1` | 打印模型信息 |
-| `enable_elastic_band` | `1` | 启动时启用虚拟吊带 |
-
-MuJoCo 快捷键：`9` 开关吊带，`7/↑` 增加支撑，`8/↓` 减少支撑，`Backspace` 重置。
-
-### 5.2 控制器
-
-| 参数 | 作用 | 默认值 |
-|---|---|---|
-| `-h`, `--help` | 显示帮助 | — |
-| `-v`, `--version` | 显示版本 | — |
-| `--log` | 写入旋转日志 | 关闭 |
-| `-n`, `--network <接口>` | DDS 接口 | `eth0` |
-
-## 6. 快速排查
-
-- 一直等待 `rt/lowstate`：确认 MuJoCo 已启动，且 Domain 为 `0`、接口为 `eth0`。
-- 出现 `llvmpipe`：当前是 CPU 软件渲染，重新 `source ./setup.sh` 后再启动 MuJoCo。
-- UFO 按钮无效：先进入 `Velocity`。
-- UFO 未出现在控制器中：重新执行第 1.1 节的 CMake 配置和编译。
-- 重复或异常控制命令：确认只运行了一个 `g1_ctrl`。
+首次实机运行前，仍需在 MuJoCo 中验证状态切换、动作收敛和异常保护。

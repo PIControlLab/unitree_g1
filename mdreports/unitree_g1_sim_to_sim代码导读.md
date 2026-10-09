@@ -1,33 +1,34 @@
 # unitree_g1 当前代码导读与 sim-to-sim 核对
 
-> 原报告日期：2026-09-18；本次按 2026-09-23 工作树复核。
-> 范围：包含尚未提交的重构；最后一次提交不一定代表当前源码；本次已重新配置并编译当前 `g1_ctrl`。安装记录见同目录另一份报告。
+> 原报告写于 2026-09-18；本版按 2026-09-24 的源码和配置更新。
+> 环境安装与历史 Passive 联调记录见同目录的安装报告。
+> 当前控制器已完成编译；本文不把编译结果当作 MuJoCo 动作或实机验收。
 
-## 1. 与原报告的关键差异
+## 1. 当前结构
 
-| 主题 | 当前工作树 |
+| 部分 | 当前实现 |
 |---|---|
-| FSM | 六个状态：`Passive`、`FixStand`、`Velocity`、`Mimic_Dance_102`、`WBC`、`UFO`。 |
-| 策略运行层 | 旧 `State_RLBase.h/.cpp` 已删除。四个策略状态使用 `State_PolicyBase`；YAML schema 2 描述观测、历史、动作、关节映射和模型。 |
-| 参考数据 | Mimic 通过 `MotionReference` 读取 manifest/NPZ；WBC 通过 `ReferenceData` 读取 manifest/轨迹；UFO 通过 `UfoLatentReference` 读取 catalog/latent NPZ。旧报告中的“运行时直接读舞蹈 CSV / WBC BIN”已过时。 |
-| GUI | 按文件位置定位项目根目录，读取真实 FSM 状态文件，提供 UFO 任务按钮；UDP 编号扩展到 1–9。 |
-| 环境 | 根 `setup.sh` 使用相对脚本路径、ROS 2 Jazzy 和 WSL `eth0`。当前本机存在官方依赖目录、ONNX Runtime 动态库、CMake、colcon 及旧控制器构建产物。 |
-
-## 2. 代码结构与通信链路
+| FSM | `Passive`、`FixStand`、`Velocity`、`Mimic_Dance_102`、`WBC`、`UFO` 六个状态 |
+| 策略运行层 | 四个策略状态共用 `State_PolicyBase`；YAML schema 2 定义观测、历史、动作和模型 |
+| 参考数据 | Mimic 用 `MotionReference`，WBC 用 `ReferenceData`，UFO 用 `UfoLatentReference` 读取 catalog 与预计算 z NPZ |
+| GUI | `g1_gui/launcher` 管理 `g1_ctrl`，读取真实 FSM 状态，显示 UFO 任务按钮，并监听 UDP 1–9 |
+| 通信 | `g1_ctrl` 直接通过 Unitree DDS 收发 LowState/LowCmd；当前路径不经过 `g1_bridge/g1_merger` |
 
 ```text
 GUI / UDP → /dev/shm/unitree_joystick_bridge.json
           → UnitreeJoystickBridge → g1_ctrl / CtrlFSM
-          → Unitree SDK2 DDS LowCmd → unitree_mujoco 或机器人
+          → Unitree SDK2 DDS LowCmd → MuJoCo 或机器人
 g1_ctrl 状态切换 → /dev/shm/unitree_fsm_state.json → GUI
-GUI UFO 任务按钮 → /dev/shm/unitree_ufo_selection.json → UFO latent
+GUI UFO 任务按钮 → /dev/shm/unitree_ufo_selection.json → UfoLatentReference
 ```
 
-`CtrlFSM` 以 1 ms 周期刷新输入、检查转换、执行状态并发布 LowCmd；策略配置为 `policy_dt=0.02`（50 Hz）。GUI 虚拟摇杆每 40 ms 写入 JSON。主程序未启用 `PolicyPublisher`，旧 `g1_bridge/merger.py` 链路仍保留，但不应与当前 DDS 直连控制器争用 LowCmd。`main.cpp` 顶部“交由 Python merger 发布”的英文注释已经过时，应以实际调用为准。
+GUI 的速度摇杆每 40 ms 更新共享文件。策略控制周期由各自的
+`policy_dt` 配置；UFO 为 0.02 s。当前 `main.cpp` 没有启用
+`PolicyPublisher`。部署入口是
+`unitree_g1_ws2/deploy/robots/g1_23dof/main.cpp`，
+FSM 配置位于同目录的 `config/config.yaml`。
 
-部署重点文件：`unitree_g1_ws2/deploy/include/FSM/State_PolicyBase.h`、`robots/g1_23dof/src/State_PolicyBase.cpp`、`config/config.yaml`、`config/robot/g1_23dof.yaml`、各 `config/policy/*/deploy.yaml`、`include/policy/` 和 `unitree_g1_ws/src/g1_gui/g1_gui/launcher.py`。
-
-## 3. 当前 FSM 转换
+## 2. FSM 转换
 
 以 `config/config.yaml` 为准：
 
@@ -37,7 +38,7 @@ Passive  -- LT+Y  --> UFO
 FixStand -- LT+B  --> Passive
 FixStand -- RB+X  --> Velocity
 FixStand -- LT+Y  --> UFO
-Velocity -- RB+Down --> FixStand
+Velocity -- LT+Up   --> FixStand
 Velocity -- LT+Down --> Mimic_Dance_102
 Velocity -- RB+Up   --> WBC
 Velocity -- LT+Y    --> UFO
@@ -48,35 +49,51 @@ UFO -- LT+Up --> FixStand
 UFO -- RB+X  --> Velocity
 ```
 
-UFO 的 tracking 片段结束后切换到 `goal_reaching/stand_pose` latent 并持续保持，**不会自动返回 Velocity**。根 README 和 `BEGIN.md` 中“10 秒后回 Velocity”“必须从 Velocity 进入 UFO”等文字与当前源码不符。GUI 按钮按可达关系启用；UFO 页面可在保持同一 FSM 状态时切换任务。UDP 1–6 是速度动作、7 是 WBC、8 是 Dance、9 是 UFO，触发仍受 GUI 当前状态约束。
+UFO 的 Tracking 播放结束后切换到
+`goal_reaching/stand_pose` 并持续保持，**不会自动返回 Velocity**。
+GUI 根据控制器报告的状态启用可到达按钮。UDP 1–6 是 Velocity 速度指令，
+7、8、9 分别请求 WBC、Dance、UFO，仍受当前 FSM 状态约束。
 
-## 4. 四类策略
+## 3. 四类策略
 
-| 状态 | 模型与参考 | 当前契约 |
+| 状态 | 模型与运行时参考 | 行为 |
 |---|---|---|
-| `Velocity` | `unitree_g1_23dof_velocity/exported/policy.onnx`；摇杆速度 | 23 关节，5 帧历史；进入时先运行一步；倾角保护启用。 |
-| `Mimic_Dance_102` | `mimic/dance_102/exported/policy.onnx`；`reference/reference.yaml` 指向 NPZ | 23 关节；0–28 s 片段；结束回 Velocity；倾角保护启用。 |
-| `WBC` | `wbc/model.onnx`；`reference/reference.yaml` | 29 维策略布局，4 帧历史，参考帧 100–300；参考重力差超过 0.9 转 Passive。 |
-| `UFO` | 分片 `FBcprAuxModel.onnx.part00/part01`；latent catalog/NPZ | 23 关节；输入 631 维、动作 23 维；进入时 1 s 位置混合；tracking 结束保持站立目标。 |
+| Velocity | `unitree_g1_23dof_velocity/exported/policy.onnx` 与摇杆速度 | 23 关节速度策略 |
+| Mimic_Dance_102 | `mimic/dance_102/exported/policy.onnx` 与 reference NPZ | 舞蹈片段结束后回 Velocity |
+| WBC | `wbc/model.onnx` 与 reference NPZ | 29 维动作布局，参考片段结束后回 Velocity |
+| UFO | `FBcprAuxModel.onnx.part00/part01` 与 latent catalog/NPZ | 23 维动作；任务只切换 256 维 z |
 
-四类状态共用 `State_PolicyBase` 的 ONNX runner、策略线程和动作写回。公共逻辑支持推理失败转 Passive、位置交接混合和配置指定的等效位置力矩限制；实际开关应逐个查看 YAML。当前 WBC/UFO 的 `bad_orientation.enabled` 为 `false`，UFO 的 `effort_limit_mode` 为 `equivalent_position`，另三类为 `none`。启用的倾角检查已对 `acos` 输入做 `[-1,1]` 限制。
+四个策略状态共用 `State_PolicyBase` 的 ONNX runner 和控制流程；
+具体关节顺序、历史长度、力矩限制与保护开关以各自 `deploy.yaml`
+及 `config/robot/g1_23dof.yaml` 为准，不能共用一份关节索引表。
 
-UFO 的 tracking、goal reaching、reward inference 仅改变 256 维 latent `z`，共用一个 FSM 状态和同一 policy。`actor_obs[631]` 包含状态 52、上一动作 23、历史 300、`z` 256。当前 catalog 有 5 个 tracking、6 个 goal reaching、3 个 reward inference；文件缺失或 ID 无效时回退到 `tracking/walk`。三个 reward latent 用交付包中的安全动作片段生成，仓库没有对应的约 22 GB replay buffer。详见 `config/policy/ufo/README.md`。
+UFO 的 actor observation 为 631 维：状态 52、上一动作 23、
+历史 300、z 256。当前 catalog 有 **5 个 Tracking、15 个 Goal reaching、
+9 个 Reward inference** 条目，全部指向预计算 NPZ。
+Tracking 为逐帧序列，其他两组为固定 z。运行时不调用 backward encoder，
+也不推理新的 z；编码器、原始 UFO 参考动作与生成脚本已从部署分支移除。
+缺少 catalog 或 NPZ 会导致加载失败；选择文件中的无效 ID 会回退到
+catalog 的 `default_id`（目前为 `tracking/walk`）。
+详细文件和模型契约见
+`unitree_g1_ws2/deploy/robots/g1_23dof/config/policy/ufo/README.md`。
 
-不同策略的关节顺序并不相同，应以各自 `deploy.yaml` 的 `joint_names` 和 `config/robot/g1_23dof.yaml` 为准，不能沿用旧报告中的单一 `joint_ids_map`。
+## 4. 构建与验证边界
 
-## 5. 构建与验证边界
+本机有 `unitree_mujoco/`、`unitree_sdk2/`、`unitree_ros2/`、
+ONNX Runtime 1.22.0 动态库和 `build/g1_ctrl`。
+2026-09-24 已成功编译 `g1_ctrl`，并校验 UFO 的 29 个 z 文件
+均被 catalog 引用、形状和数值有效、policy 分片拼接校验值正确。
+这些检查不等于已经完成 MuJoCo 动作测试。
 
-当前本机可见 `unitree_mujoco/`、`unitree_sdk2/`、`unitree_ros2/`、ONNX Runtime 1.22.0 动态库和 `build/g1_ctrl`；系统能找到 CMake 和 colcon。原报告“当前缺少这些依赖，无法构建”的结论仅适用于安装前。当前策略重构修改了 C++ 源码，本次已重新配置 CMake 并完成 `g1_ctrl` 编译与链接；仍需在 MuJoCo 中验证六个状态。
+仿真启动与操作顺序见项目根目录 `BEGIN.md`。使用 Domain 0、
+WSL `eth0`、G1 23DoF 场景和 `unitree_hg` IDL。
+GUI 不启动 MuJoCo；同一时间只启动一个 `g1_ctrl`。
+安装报告中的 2026-09-18 Passive 短时 DDS 联调是历史结果，
+不能代替当前策略的动作验证。
 
-仿真顺序参见 `BEGIN.md`：MuJoCo 使用 Domain 0、`eth0`、`g1`、`scene_23dof.xml`、`unitree_hg`；先启动 MuJoCo，再启动一个 `g1_ctrl`。GUI 不负责启动 MuJoCo。本机历史测试发现 `lo` 缺少组播能力，DDS 自动发现未成功；`eth0` 曾完成旧代码 Passive 联调。那次结果不能代替当前工作树的运动测试。
+## 5. 后续验证重点
 
-## 6. 仍需核对的风险
-
-1. `UnitreeJoystickBridge` 复用最后一次 JSON payload，没有按文件年龄将速度归零；输入失联与 GUI 退出时的行为需验证。
-2. `/dev/shm/unitree_fsm_state.json` 仅在 FSM 启动和切换时写入；文件存在不表示控制器仍存活。
-3. `g1_bridge/setup.py` 注册的 `arm_ctrl_json` 对应文件仍缺失；`arm_ctrl.cpp` 仍未由当前 CMake 建成独立程序。
-4. 官方外部仓库和 ONNX Runtime 动态库受忽略规则管理，另一个 clone 仍须单独准备。
-5. 真机前需重新验证关节映射、1 kHz/50 Hz 时序、UFO 热切换和片段结束、异常保护、唯一 LowCmd 发布者及实际限幅。
-
-本文说明当前源码；安装报告中的短时 Passive 验证是历史记录，不是本次重构的验收结论。
+1. 在 MuJoCo 中逐一检查六个状态、可达转换、UFO 任务热切换和 Tracking 结束后的站立保持。
+2. 检查输入失联、GUI 关闭、模型异常和策略保护时的控制器行为。
+3. 真机前验证关节映射、控制时序、接触与限幅，并确保只有一个 LowCmd 发布者。
+4. 新环境需重新准备受 `.gitignore` 排除的官方仓库与 ONNX Runtime 动态库。
