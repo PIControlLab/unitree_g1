@@ -129,7 +129,7 @@ inline po::variables_map helper(int argc, char** argv)
         ("help,h", "produce help message")
         ("version,v", "show version")
         ("log", "record log file")
-        ("network,n", po::value<std::string>()->default_value(""), "dds network interface")
+        ("network,n", po::value<std::string>()->default_value("eth0"), "dds network interface")
         ;
 
     po::variables_map vm;

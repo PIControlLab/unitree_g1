@@ -53,7 +53,7 @@ Velocity
 | 配置 | 本项目默认值 |
 |---|---|
 | DDS Domain | `0` |
-| 网络接口 | `lo` |
+| 网络接口 | `eth0` |
 | 机器人 | `g1` |
 | 场景 | `scene_23dof.xml` |
 | DDS IDL | `1`，即 `unitree_hg` |
@@ -61,7 +61,8 @@ Velocity
 | MuJoCo OpenGL 渲染 | WSLg D3D12，优先使用 NVIDIA RTX 3050 Ti |
 
 项目根目录的 `setup.sh` 会加载 ROS 2 Jazzy、工程工作区和 Unitree 动态库，并把
-CycloneDDS 限制到 `lo`。它还会清理旧的 `/dev/shm/unitree_*.json`，所以应在启动 GUI
+CycloneDDS 限制到 `eth0`。本机 WSL 的 `lo` 不支持 CycloneDDS 默认发现所需的组播，
+不能用于这套仿真链路。脚本还会清理旧的 `/dev/shm/unitree_*.json`，所以应在启动 GUI
 和控制器之前执行，不要在 GUI 已运行后反复执行。脚本同时设置：
 
 ```bash
@@ -99,7 +100,7 @@ cd /home/hanlichen/projects/unitree_g1
 source ./setup.sh
 cd unitree_mujoco/simulate/build
 GALLIUM_DRIVER=d3d12 MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA \
-  ./unitree_mujoco -i 0 -n lo -r g1 -s scene_23dof.xml -t 1
+  ./unitree_mujoco -i 0 -r g1 -s scene_23dof.xml -t 1
 ```
 
 必须显式给出上面的参数，因为 `unitree_mujoco/simulate/config.yaml` 的上游基础默认值仍是
@@ -114,7 +115,7 @@ MuJoCo 支持的命令行选项如下：
 |---|---|---|---|
 | `-h`, `--help` | 显示帮助 | — | 按需使用 |
 | `-i`, `--domain_id` | DDS Domain ID | `1` | `0` |
-| `-n`, `--network` | DDS 网络接口 | `lo` | `lo` |
+| `-n`, `--network` | DDS 网络接口 | `eth0` | `eth0`；通常无需显式传入 |
 | `-r`, `--robot` | 机器人类型 | `go2` | `g1` |
 | `-s`, `--scene` | 对应机器人目录中的场景文件 | `scene.xml` | `scene_23dof.xml` |
 | `-t`, `--idl_type` | `-1=自动`、`0=unitree_go`、`1=unitree_hg` | `-1` | `1` |
@@ -153,7 +154,7 @@ GUI 启动后，再点击左侧 **G1 控制器（g1_ctrl）** 卡片中的“启
 
 `start_gui.sh` 和 GUI 当前没有额外命令行选项。GUI 启动的 `g1_ctrl` 也不传参数，它依赖：
 
-- `setup.sh` 设置的 `lo` CycloneDDS 接口；
+- `setup.sh` 设置的 `eth0` CycloneDDS 接口；
 - `config/config.yaml` 中的 `domain_id: 0` 和 `mode_machine: 4`；
 - UDP 监听端口 `9876`。
 
@@ -163,7 +164,7 @@ GUI 启动后，再点击左侧 **G1 控制器（g1_ctrl）** 卡片中的“启
 cd /home/hanlichen/projects/unitree_g1
 source ./setup.sh
 cd unitree_g1_ws2/deploy/robots/g1_23dof/build
-./g1_ctrl --network lo --log
+./g1_ctrl --log
 ```
 
 `g1_ctrl` 可选参数：
@@ -173,7 +174,7 @@ cd unitree_g1_ws2/deploy/robots/g1_23dof/build
 | `-h`, `--help` | 显示帮助 | 按需使用 |
 | `-v`, `--version` | 显示版本 | 当前为 `1.0.0.1` |
 | `--log` | 同时记录旋转日志 | 默认关闭；排查问题时推荐开启 |
-| `-n`, `--network <接口>` | DDS 网络接口 | 程序默认空字符串；本项目推荐显式使用 `lo` |
+| `-n`, `--network <接口>` | DDS 网络接口 | 默认 `eth0`；通常无需显式传入 |
 
 手工启动 `g1_ctrl` 后不要再在 GUI 中点击“启动”，两者只能选一个。手工模式下如仍需 GUI
 按钮，应让 GUI 只负责写手柄文件，且不要启动它的控制器进程。
@@ -194,7 +195,7 @@ python3 udp_send.py <运行GUI的电脑IP> 9876
 
 ### 3.1 首次安全启动
 
-1. 先启动 MuJoCo，确认加载的是 `g1/scene_23dof.xml`、Domain 0、`lo` 和
+1. 先启动 MuJoCo，确认加载的是 `g1/scene_23dof.xml`、Domain 0、`eth0` 和
    `unitree_hg`。此时保持虚拟吊带启用，不要立即按 `9`。
 2. 再启动 GUI，并在 GUI 中启动 `g1_ctrl`。等待控制器连接成功；FSM 初始应为
    `Passive`。
@@ -238,7 +239,7 @@ python3 udp_send.py <运行GUI的电脑IP> 9876
 - 模式按钮无响应：确认当前状态是否允许该跳转。尤其是 Dance、WBC、UFO 必须从
   `Velocity` 进入。
 - 控制器一直显示等待连接：检查 MuJoCo 是否先启动，以及两边是否同时使用 Domain 0、
-  `lo` 和 `unitree_hg`。
+  `eth0` 和 `unitree_hg`。
 - 机器人收到异常或重复命令：检查是否同时运行了多个 `g1_ctrl`、旧的 merger 或其他
   `LowCmd` 发布者。
 - GUI 状态显示与机器人不一致：GUI 当前显示的是本地推测状态，不是控制器返回的真实

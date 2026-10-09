@@ -22,7 +22,7 @@ export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 unset LIBGL_ALWAYS_SOFTWARE
 export GALLIUM_DRIVER=d3d12
 export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
-# 将 CycloneDDS 网络接口限制为本机回环接口 lo
+# 将 CycloneDDS 网络接口限制为本机 WSL 的 eth0；lo 不支持 DDS 发现所需的组播。
 export CYCLONEDDS_URI='<CycloneDDS><Domain><General><Interfaces>
-                            <NetworkInterface name="lo" priority="default" multicast="default" />
+                            <NetworkInterface name="eth0" priority="default" multicast="default" />
                         </Interfaces></General></Domain></CycloneDDS>'

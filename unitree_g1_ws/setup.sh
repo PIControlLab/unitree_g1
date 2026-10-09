@@ -10,5 +10,5 @@ export LD_LIBRARY_PATH=/opt/unitree_robotics/lib:$LD_LIBRARY_PATH
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export ROS_DOMAIN_ID=0
 export CYCLONEDDS_URI='<CycloneDDS><Domain><General><Interfaces>
-                            <NetworkInterface name="lo" priority="default" multicast="default" />
+                            <NetworkInterface name="eth0" priority="default" multicast="default" />
                         </Interfaces></General></Domain></CycloneDDS>'
