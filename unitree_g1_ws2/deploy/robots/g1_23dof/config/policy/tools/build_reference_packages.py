@@ -69,25 +69,6 @@ def build_wbc():
     save_npz(target / "data.npz", **{name: read_bin(source / f"{name}.bin") for name in names})
 
 
-def build_ufo():
-    source = ROOT / "ufo/reference/walk1_subject1_130_140.uforef"
-    target = ROOT / "ufo/reference/walk1_subject1_130_140"
-    with source.open("rb") as stream:
-        magic = stream.read(8)
-        version, frames, width = struct.unpack("<III", stream.read(12))
-        sample_rate_hz = struct.unpack("<f", stream.read(4))[0]
-        if magic[:7] != b"UFOREF1" or version != 1 or width != 410 or sample_rate_hz != 50.0:
-            raise ValueError(source)
-        values = np.frombuffer(stream.read(), dtype="<f4").reshape(frames, width)
-    target.mkdir(parents=True, exist_ok=True)
-    save_npz(
-        target / "data.npz",
-        expert_state=values[:, :52],
-        privileged_state=values[:, 52:],
-    )
-
-
 if __name__ == "__main__":
     build_mimic()
     build_wbc()
-    build_ufo()
