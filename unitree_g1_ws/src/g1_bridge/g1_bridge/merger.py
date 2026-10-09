@@ -140,10 +140,10 @@ class G1Merger(Node):
 
 
 def main():
-    rclpy.init()
-    node = G1Merger()
+    rclpy.init() # 初始化 ROS 2
+    node = G1Merger() # 创建节点
     try:
-        rclpy.spin(node)
+        rclpy.spin(node) # 进入ROS event loop，触发timer
     except KeyboardInterrupt:
         pass
     node.destroy_node()

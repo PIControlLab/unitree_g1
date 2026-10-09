@@ -52,6 +52,7 @@ class JoystickWriter:
     """管理 /dev/shm/unitree_joystick_bridge.json 的读写（线程安全）"""
 
     def __init__(self):
+        # 程序一启动，就立刻生成一个全零的手柄 JSON
         self._lock = threading.Lock()
         self.pulse_active = False  # True 时摇杆定时器暂停写轴
         self.state = {
