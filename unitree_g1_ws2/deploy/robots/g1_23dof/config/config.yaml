@@ -17,6 +17,9 @@ FSM:
     WBC:
       id: 10
       type: WBC
+    UFO_Walk:
+      id: 102
+      type: UFO
 
   Passive:
     transitions: 
@@ -69,6 +72,7 @@ FSM:
     transitions:
       Mimic_Dance_102: LT + down.on_pressed
       WBC: RB + up.on_pressed
+      UFO_Walk: LT + Y.on_pressed
       FixStand: RB + down.on_pressed
     policy_dir: config/policy/unitree_g1_23dof_velocity/
 
@@ -92,3 +96,14 @@ FSM:
     start_idx: 100
     end_idx: 300
     safe_projgravity_threshold: 0.9
+
+  # UFO-FB 双网络策略：walk1_subject1 的 130-140s 已验证片段
+  UFO_Walk:
+    transitions:
+      Velocity: RB + X.on_pressed
+    policy_parts:
+      - config/policy/ufo/model/FBcprAuxModel.onnx.part00
+      - config/policy/ufo/model/FBcprAuxModel.onnx.part01
+    encoder_path: config/policy/ufo/model/backward_encoder.onnx
+    reference_file: config/policy/ufo/reference/walk1_subject1_130_140.uforef
+    entry_blend_s: 1.0

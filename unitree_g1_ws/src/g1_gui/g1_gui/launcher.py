@@ -330,6 +330,12 @@ class FsmControlPanel(QFrame):
             "axes": {},
             "label": "RB+Up → WBC (整机控制)",
         },
+        "UFO": {
+            # 只能从 Velocity 进入
+            "buttons": ["y"],
+            "axes": {"lt": 1.0},
+            "label": "LT+Y → UFO (全身策略)",
+        },
         "Dance": {
             # 两种进入方式，根据当前状态自动选择
             # FixStand → Dance: RB+Y
@@ -391,7 +397,7 @@ class FsmControlPanel(QFrame):
         layout.addLayout(btn_row)
 
         # 提示
-        hint = QLabel("  Passive(趴下) | FixStand(站立) | Velocity(行走) | WBC(整机) | Dance(跳舞)")
+        hint = QLabel("  Passive(趴下) | FixStand(站立) | Velocity(行走) | WBC(整机) | UFO(全身策略) | Dance(跳舞)")
         hint.setFont(QFont("Sans", 8))
         hint.setStyleSheet("color: #585b70;")
         hint.setWordWrap(True)
@@ -462,6 +468,7 @@ class FsmControlPanel(QFrame):
             "FixStand": ("#1565c0", "#1976d2"),
             "Velocity": ("#2e7d32", "#388e3c"),
             "WBC":      ("#e65100", "#ef6c00"),
+            "UFO":      ("#00695c", "#00897b"),
             "Dance":    ("#6a1b9a", "#7b1fa2"),
         }
         base, hover = colors.get(mode_name, ("#444", "#555"))
@@ -503,6 +510,12 @@ class FsmControlPanel(QFrame):
             WBC_DURATION = 4.0  # WBC 播放 ~3s + 切回开销
             QTimer.singleShot(
                 int(WBC_DURATION * 1000),
+                lambda: self._set_display("Velocity"),
+            )
+        elif mode_name == "UFO":
+            UFO_DURATION = 10.0
+            QTimer.singleShot(
+                int(UFO_DURATION * 1000),
                 lambda: self._set_display("Velocity"),
             )
         elif mode_name == "Dance":
@@ -642,6 +655,20 @@ class ActionPanel(QFrame):
         self.wbc_btn = wbc_btn
         layout.addWidget(wbc_btn)
 
+        # UFO-FB（发送 FSM 组合键）
+        ufo_btn = QPushButton("U F O")
+        ufo_btn.setFixedHeight(34)
+        ufo_btn.setFont(QFont("Sans", 11, QFont.Bold))
+        ufo_btn.setStyleSheet(
+            "QPushButton { background: #00695c; color: #e0e0e0; border: none; "
+            "border-radius: 4px; padding: 4px 8px; }"
+            "QPushButton:hover { background: #00897b; }"
+            "QPushButton:disabled { background: #333; color: #666; }"
+        )
+        ufo_btn.clicked.connect(self._ufo)
+        self.ufo_btn = ufo_btn
+        layout.addWidget(ufo_btn)
+
         # 跳舞（发送 FSM 组合键）
         dance_btn = QPushButton("跳 舞")
         dance_btn.setFixedHeight(34)
@@ -666,10 +693,11 @@ class ActionPanel(QFrame):
             btn.setEnabled(active)
         # WBC 和跳舞在 Velocity 下可用
         self.wbc_btn.setEnabled(mode == "Velocity")
+        self.ufo_btn.setEnabled(mode == "Velocity")
         self.dance_btn.setEnabled(mode in ("FixStand", "Velocity"))
 
     def trigger(self, idx):
-        """外部触发：1=前进 2=后退 3=左移 4=右移 5=左转弯 6=右转弯 7=WBC 8=跳舞"""
+        """外部触发：1=前进 2=后退 3=左移 4=右移 5=左转弯 6=右转弯 7=WBC 8=跳舞 9=UFO"""
         if idx == 1:
             self._pulse(0.0, -1.0, 0.0)
         elif idx == 2:
@@ -686,6 +714,8 @@ class ActionPanel(QFrame):
             self._wbc()
         elif idx == 8:
             self._dance()
+        elif idx == 9:
+            self._ufo()
 
     def _pulse(self, lx, ly, rx):
         """在后台线程发速度脉冲"""
@@ -703,6 +733,10 @@ class ActionPanel(QFrame):
         """触发跳舞，28s 后自动切回 Velocity"""
         self.fsm_panel._activate("Dance")
 
+    def _ufo(self):
+        """触发 UFO-FB，10s 后自动切回 Velocity"""
+        self.fsm_panel._activate("UFO")
+
 
 # ═══════════════════════════════════════════════════════════
 #  UDP 监听器（外部触发）
@@ -711,7 +745,7 @@ class ActionPanel(QFrame):
 class UDPListener(QObject):
     """UDP 监听器，在后台线程接收触发指令，通过信号通知 GUI 主线程"""
 
-    triggered = pyqtSignal(int)  # 1-8 对应八个动作按钮
+    triggered = pyqtSignal(int)  # 1-9 对应动作按钮
 
     def __init__(self, port=9876):
         super().__init__()
@@ -746,7 +780,7 @@ class UDPListener(QObject):
                 data, addr = s.recvfrom(16)
                 cmd = data.decode().strip()
                 idx = int(cmd)
-                if 1 <= idx <= 8:
+                if 1 <= idx <= 9:
                     print(f"[UDP] 收到 {addr} → 动作 {idx}")
                     self.triggered.emit(idx)
             except sock_mod.timeout:

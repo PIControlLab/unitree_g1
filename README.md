@@ -57,6 +57,11 @@ enable_elastic_band: 1             # 虚拟弹性带，用于抬起 H1
 
 存放训练好的强化学习策略及部署代码。
 
+当前 G1-23DoF 控制器提供四类并列策略功能：`Velocity`、`Mimic`、`WBC` 和
+`UFO_Walk`。UFO-FB 使用 `LT+Y` 从 Velocity 进入，播放完 10 秒参考片段后
+自动回到 Velocity；也可随时用 `RB+X` 退出。首次连接实机前应先在 MuJoCo
+中验证，并确保机器人周围有足够的安全空间。
+
 ## 运行前准备
 
 ### 初始化环境

@@ -4,6 +4,7 @@
 #include "FSM/State_FixStand.h"
 #include "FSM/State_RLBase.h"
 #include "State_Mimic.h"
+#include "State_UFO.h"
 #include "FSM/State_WBC.h"
 #include "UnitreeJoystickBridge.h"
 #include "PolicyPublisher.h"
