@@ -9,7 +9,7 @@ unitree_g1/
 ├── unitree_mujoco/    # MuJoCo 物理引擎仿真（来自官网）
 ├── unitree_sdk2/      # 宇树 SDK2（来自官网）
 ├── unitree_ros2/      # ROS2 及相关中间件（来自官网）
-├── unitree_g1_ws/     # 实验室开发工作区
+├── unitree_g1_ws/     # 可选的 PyQt5 图形控制界面
 ├── unitree_g1_ws2/    # 强化学习策略部署
 ├── setup.sh           # 环境初始化脚本
 └── start_gui.sh       # 图形化控制界面启动脚本
@@ -47,11 +47,12 @@ enable_elastic_band: 1             # 虚拟弹性带，用于抬起 H1
 - **仓库**：[unitreerobotics/unitree_ros2](https://github.com/unitreerobotics/unitree_ros2)
 - **目标**：保持中间件版本一致性，即 CycloneDDS 版本为 **0.9.2**
 
-## 实验室 workspace
+## 项目 workspace
 
 ### unitree_g1_ws
 
-各类日常开发工作。
+可选的 `g1_gui` ROS 2 Python 包，用于启动 `g1_ctrl`、操作 FSM
+并通过共享内存 JSON 提供虚拟手柄输入。核心 Sim-to-Sim 链路不依赖该工作区。
 
 ### unitree_g1_ws2
 
