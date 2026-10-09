@@ -16,6 +16,12 @@ source "$SCRIPT_DIR/unitree_g1_ws/install/setup.bash"
 export LD_LIBRARY_PATH=/opt/unitree_robotics/lib:$LD_LIBRARY_PATH
 # 指定 ROS 2 使用 CycloneDDS
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+# WSLg 默认可能回退到 llvmpipe 软件 OpenGL。强制 Mesa 使用 WSL 的
+# D3D12 Gallium 驱动，并优先选择本机 NVIDIA 显卡用于 MuJoCo/GLFW 渲染。
+# 这只加速可视化渲染；MuJoCo 动力学计算仍然运行在 CPU 上。
+unset LIBGL_ALWAYS_SOFTWARE
+export GALLIUM_DRIVER=d3d12
+export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
 # 将 CycloneDDS 网络接口限制为本机回环接口 lo
 export CYCLONEDDS_URI='<CycloneDDS><Domain><General><Interfaces>
                             <NetworkInterface name="lo" priority="default" multicast="default" />
