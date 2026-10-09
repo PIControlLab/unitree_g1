@@ -32,7 +32,8 @@ from PyQt5.QtGui import QColor, QFont, QPainter, QPen, QBrush
 #  路径配置
 # ═══════════════════════════════════════════════════════════
 
-PROJECT_ROOT = os.path.expanduser("~/unitree_g1")
+# launcher.py 位于 unitree_g1_ws/src/g1_gui/g1_gui/，向上四级为项目根目录。
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
 
 CTRL_PATH = os.path.join(PROJECT_ROOT, "unitree_g1_ws2/deploy/robots/g1_23dof/build/g1_ctrl")
 CTRL_CWD = os.path.join(PROJECT_ROOT, "unitree_g1_ws2/deploy/robots/g1_23dof/build")

@@ -7,8 +7,8 @@ echo "Robot IP: 192.168.12.103"
 IFACE=${1:-eth0}
 
 source /opt/ros/jazzy/setup.bash
-source /home/ningwt/unitree_g1/unitree_ros2/cyclonedds_ws/install/setup.bash
-source $SCRIPT_DIR/install/setup.bash
+source "$SCRIPT_DIR/../unitree_ros2/cyclonedds_ws/install/setup.bash"
+source "$SCRIPT_DIR/install/setup.bash"
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export ROS_DOMAIN_ID=0
 export CYCLONEDDS_URI='<CycloneDDS><Domain>
