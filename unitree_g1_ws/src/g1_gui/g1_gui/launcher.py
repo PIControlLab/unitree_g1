@@ -911,8 +911,8 @@ class ProcessCard(QFrame):
             self.process = subprocess.Popen(
                 self.cmd,
                 cwd=self.cwd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=None,  # inherit the terminal that started the GUI
+                stderr=None,  # keep controller errors visible there too
                 preexec_fn=os.setsid,
             )
         except FileNotFoundError:

@@ -17,8 +17,8 @@ public:
     static constexpr int LEG_END = 11;
     static constexpr float DEFAULT_KP = 40.0f;
     static constexpr float DEFAULT_KD = 1.0f;
-    static constexpr float SOFT_LEG = 1.0f;    // 腿进入刚度 30%
-    static constexpr float SOFT_UPPER = 1.0f;   // 上身进入刚度 10%
+    static constexpr float SOFT_LEG = 1.0f;   
+    static constexpr float SOFT_UPPER = 1.0f; 
     static constexpr float RAMP_DURATION = 3.0f;
 
     void enter()
