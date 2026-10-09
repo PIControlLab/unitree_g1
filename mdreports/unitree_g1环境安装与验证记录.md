@@ -5,7 +5,32 @@
 > 系统：WSL2，Ubuntu 24.04.2 LTS（Noble），x86_64  
 > 目的：补齐本项目进行 C++ 编译、ROS 2 通信和 MuJoCo sim-to-sim 所需的开发环境。
 
-## 1. 最终状态
+## 0. 2026-09-23 当前工作树复核
+
+本报告第 1–10 节记录 **2026-09-18 当时的安装与测试**；其中“没有修改项目脚本”“后续再适配路径”“只验证旧控制器 Passive”等句子只描述当次操作，不是今天的代码状态。当前源码结构和 FSM 见同目录《unitree_g1_sim_to_sim代码导读》。
+
+- 当前本机仍可见 `unitree_sdk2/`、`unitree_mujoco/`、`unitree_ros2/`、ONNX Runtime 1.22.0 动态库和控制器构建目录；`cmake`、`colcon` 在 PATH 中。
+- 此后仓库工作树已出现多处尚未提交的源码与配置修改。控制器现有六个状态：Passive、FixStand、Velocity、Mimic、WBC、UFO；四种策略使用 `State_PolicyBase` 和 YAML schema 2。9 月 18 日的编译结果不能证明这些后来修改过的代码。
+- 本次已针对当前工作树重新执行 CMake 配置和 `g1_ctrl` 构建，结果为 `Built target g1_ctrl`；新构建的 `--version` 输出 `1.0.0.1`。这验证了编译、链接和基本命令行启动，**没有完成新代码的 DDS 联调、FSM 转换或运动测试**。
+- 根目录 `setup.sh` 已改为以脚本位置定位工作区，统一 ROS 2 Jazzy，并把 CycloneDDS 约束到 WSL `eth0`；`start_gui.sh` 已 source 它。GUI 也从源码位置推导项目根目录，不再硬编码旧路径。
+- 当前 `config/config.yaml` 为 Domain 0、`mode_machine=4`，并启用 UFO；GUI 提供 UFO latent 选择和实际 FSM 状态显示。过去的“仅五个状态”“GUI 状态纯推测”不再适用。
+- 9 月 18 日在 `eth0` 上完成的 Passive 短时联调仍是有效的**历史结果**，但不能外推到当前尚未运行验证的策略重构。真机连接前须重新进行 MuJoCo 动作和异常路径验证。
+
+当前仿真环境初始化建议在项目根目录执行：
+
+```bash
+source ./setup.sh
+```
+
+MuJoCo 仍须独立启动；建议显式给出 Domain、网络、机器人、场景和 IDL：
+
+```bash
+./unitree_mujoco -i 0 -n eth0 -r g1 -s scene_23dof.xml -t 1
+./g1_ctrl --network eth0
+```
+
+两条命令应分别在各自的构建目录运行；控制器只启动一个实例。第 7、8 节给出的手动初始化和启动参数保留为当时的验证记录；当前脚本已能完成相应环境初始化。
+## 1. 2026-09-18 安装完成时的状态
 
 环境安装和主要构建验证已经完成：
 
@@ -337,7 +362,7 @@ cd ~/projects/unitree_g1/unitree_g1_ws2/deploy/robots/g1_23dof/build
 
 apt 自动依赖、项目 ROS build 目录和系统缓存还会占用额外空间。
 
-## 10. 未做的修改
+## 10. 2026-09-18 当次未做的修改
 
 - 没有修改项目控制器、FSM、GUI 或配置源码。
 - 没有把任何 ROS source 命令写入 `~/.bashrc`。

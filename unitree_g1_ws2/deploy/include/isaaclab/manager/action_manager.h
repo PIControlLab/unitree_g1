@@ -1,130 +1,91 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
 #pragma once
 
-#include "isaaclab/envs/manager_based_rl_env.h"
-#include "isaaclab/manager/manager_term_cfg.h"
-#include <numeric>
+#include <algorithm>
+#include <mutex>
+#include <vector>
+#include <yaml-cpp/yaml.h>
 
 namespace isaaclab
 {
 
-class ActionTerm 
-{
-public:
-    ActionTerm(YAML::Node cfg, ManagerBasedRLEnv* env): cfg(cfg), env(env) {}
-
-    virtual int action_dim() = 0;
-    virtual std::vector<float> raw_actions() = 0;
-    virtual std::vector<float> processed_actions() = 0;
-    virtual void process_actions(std::vector<float> actions) = 0;
-    virtual void reset(){};
-
-protected:
-    YAML::Node cfg;
-    ManagerBasedRLEnv* env;
-};
-
-inline std::map<std::string, std::function<std::unique_ptr<ActionTerm>(YAML::Node, ManagerBasedRLEnv*)>>& actions_map() {
-    static std::map<std::string, std::function<std::unique_ptr<ActionTerm>(YAML::Node, ManagerBasedRLEnv*)>> instance;
-    return instance;
-}
-
-#define REGISTER_ACTION(name) \
-    inline struct name##_registrar { \
-        name##_registrar() { \
-            actions_map()[#name] = [](YAML::Node cfg, ManagerBasedRLEnv* env) { \
-                return std::make_unique<name>(cfg, env); \
-            }; \
-        } \
-    } name##_registrar_instance;
+class ManagerBasedRLEnv;
 
 class ActionManager
 {
 public:
-    ActionManager(YAML::Node cfg, ManagerBasedRLEnv* env)
-    : cfg(cfg), env(env)
+    ActionManager(YAML::Node cfg, const std::vector<float>& default_joint_pos)
+        : default_joint_pos_(default_joint_pos),
+          raw_action_scale_(cfg["raw_action_scale"].as<float>()),
+          action_target_scale_(cfg["action_target_scale"].as<std::vector<float>>()),
+          add_default_joint_pos_(cfg["add_default_joint_pos"].as<bool>())
     {
-        _prepare_terms();
-        _action.resize(total_action_dim(), 0.0f);
+        if (cfg["raw_action_clip"] && !cfg["raw_action_clip"].IsNull())
+            raw_action_clip_ = cfg["raw_action_clip"].as<std::vector<float>>();
+        if (cfg["position_clip"] && !cfg["position_clip"].IsNull())
+            position_clip_ = cfg["position_clip"].as<std::vector<std::vector<float>>>();
+        reset();
     }
 
     void reset()
     {
-        _action.assign(total_action_dim(), 0.0f);
-        for(auto & term : _terms)
+        std::lock_guard<std::mutex> lock(mutex_);
+        raw_actions_.assign(action_target_scale_.size(), 0.0f);
+        normalized_actions_.assign(action_target_scale_.size(), 0.0f);
+        position_targets_ = add_default_joint_pos_
+            ? default_joint_pos_
+            : std::vector<float>(action_target_scale_.size(), 0.0f);
+    }
+
+    void process_action(const std::vector<float>& actions)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        raw_actions_ = actions;
+        for (size_t i = 0; i < actions.size(); ++i)
         {
-            term->reset();
+            normalized_actions_[i] = actions[i] * raw_action_scale_;
+            if (!raw_action_clip_.empty())
+                normalized_actions_[i] = std::clamp(
+                    normalized_actions_[i], raw_action_clip_[0], raw_action_clip_[1]);
+            position_targets_[i] = normalized_actions_[i] * action_target_scale_[i];
+            if (add_default_joint_pos_) position_targets_[i] += default_joint_pos_[i];
+            if (!position_clip_.empty())
+                position_targets_[i] = std::clamp(
+                    position_targets_[i], position_clip_[i][0], position_clip_[i][1]);
         }
     }
 
-    std::vector<float> action()
+    std::vector<float> raw_actions() const
     {
-        return _action;
+        std::lock_guard<std::mutex> lock(mutex_);
+        return raw_actions_;
     }
 
-    std::vector<float> processed_actions()
+    std::vector<float> normalized_actions() const
     {
-        std::vector<float> actions;
-        for(auto & term : _terms)
-        {
-            auto term_action = term->processed_actions();
-            actions.insert(actions.end(), term_action.begin(), term_action.end());
-        }
-        return actions;
+        std::lock_guard<std::mutex> lock(mutex_);
+        return normalized_actions_;
     }
 
-    void process_action(std::vector<float> action)
+    std::vector<float> processed_actions() const
     {
-        _action = action;
-        int idx = 0;
-        for(auto & term : _terms)
-        {
-            auto term_action = std::vector<float>(action.begin() + idx, action.begin() + idx + term->action_dim());
-            term->process_actions(term_action);
-            idx += term->action_dim();
-        }
+        std::lock_guard<std::mutex> lock(mutex_);
+        return position_targets_;
     }
 
-    int total_action_dim()
-    {
-        auto dims = action_dim();
-        
-        return std::accumulate(dims.begin(), dims.end(), 0);
-    }
-
-    std::vector<int> action_dim()
-    {
-        std::vector<int> dims;
-        for (auto & term : _terms)
-        {
-            dims.push_back(term->action_dim());
-        }
-        return dims;
-    }
-
-    YAML::Node cfg;
-    ManagerBasedRLEnv* env;
+    int action_dim() const { return static_cast<int>(action_target_scale_.size()); }
 
 private:
-    void _prepare_terms()
-    {
-        for(auto it = this->cfg.begin(); it != this->cfg.end(); ++it)
-        {
-            std::string action_name = it->first.as<std::string>();
-            if(actions_map().find(action_name) == actions_map().end())
-            {
-                throw std::runtime_error("Action term '" + action_name + "' is not registered.");
-            }
+    std::vector<float> default_joint_pos_;
+    float raw_action_scale_;
+    std::vector<float> raw_action_clip_;
+    std::vector<float> action_target_scale_;
+    bool add_default_joint_pos_;
+    std::vector<std::vector<float>> position_clip_;
 
-            auto term = actions_map()[action_name](it->second, env);
-            _terms.push_back(std::move(term));
-        }
-    }
-
-    std::vector<float> _action;
-    std::vector<std::unique_ptr<ActionTerm>> _terms;
+    mutable std::mutex mutex_;
+    std::vector<float> raw_actions_;
+    std::vector<float> normalized_actions_;
+    std::vector<float> position_targets_;
 };
 
-};
+} // namespace isaaclab

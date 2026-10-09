@@ -115,6 +115,11 @@ inline std::filesystem::path parser_policy_dir(std::filesystem::path policy_dir)
     return policy_dir;
 }
 
+inline std::filesystem::path resolve_path(std::filesystem::path path)
+{
+    return path.is_relative() ? proj_dir / path : path;
+}
+
 /* ---------- Command Line Parameters ---------- */
 namespace po = boost::program_options;
 

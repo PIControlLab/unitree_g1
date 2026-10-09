@@ -165,7 +165,7 @@ Velocity
   ├─ RB+Down ─> FixStand
   ├─ LT+Down ─> Mimic_Dance_102 ── RB+X / 动作结束 ──> Velocity
   ├─ RB+Up ───> WBC ────────────── RB+X / 动作结束 ──> Velocity
-  └─ LT+Y ────> UFO_Walk ───────── RB+X / 动作结束 ──> Velocity
+  └─ LT+Y ────> UFO（GUI 选择 z）── RB+X / 动作结束 ──> Velocity
 ```
 
 | 模式 | 效果 |
@@ -175,9 +175,9 @@ Velocity
 | `Velocity` | 速度跟踪，可控制前后、横移和转向 |
 | `Mimic_Dance_102` | 跟踪约 28 秒的舞蹈动作 |
 | `WBC` | 播放当前 WBC 全身轨迹 |
-| `UFO_Walk` | UFO-FB 双 ONNX 全身策略，播放约 10 秒参考片段 |
+| `UFO` | 同一 UFO-FB policy；GUI 可选择 Tracking、Goal reaching、Reward inference 及对应 z |
 
-Dance、WBC 和 UFO 必须先进入 `Velocity`。倾倒或推理异常时策略可能自动进入
+Dance、WBC 和 UFO 必须先进入 `Velocity`。进入 UFO 前先在 GUI 的“UFO 功能”和“z / 任务”下拉框中选择。倾倒或推理异常时策略可能自动进入
 `Passive`。
 
 ## 5. 启动参数

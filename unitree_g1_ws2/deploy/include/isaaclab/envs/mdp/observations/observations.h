@@ -10,6 +10,14 @@ namespace isaaclab
 namespace mdp
 {
 
+inline std::vector<int> observation_joint_ids(const YAML::Node& params)
+{
+    const auto asset_cfg = params["asset_cfg"];
+    return asset_cfg && asset_cfg["joint_ids"]
+        ? asset_cfg["joint_ids"].as<std::vector<int>>()
+        : std::vector<int>{};
+}
+
 REGISTER_OBSERVATION(base_ang_vel)
 {
     auto & asset = env->robot;
@@ -29,11 +37,7 @@ REGISTER_OBSERVATION(joint_pos)
     auto & asset = env->robot;
     std::vector<float> data;
 
-    std::vector<int> joint_ids;
-    try {
-        joint_ids = params["asset_cfg"]["joint_ids"].as<std::vector<int>>();
-    } catch(const std::exception& e) {
-    }
+    const auto joint_ids = observation_joint_ids(params);
 
     if(joint_ids.empty())
     {
@@ -65,46 +69,36 @@ REGISTER_OBSERVATION(joint_pos_rel)
         data[i] = asset->data.joint_pos[i] - asset->data.default_joint_pos[i];
     }
 
-    try {
-        std::vector<int> joint_ids;
-        joint_ids = params["asset_cfg"]["joint_ids"].as<std::vector<int>>();
-        if(!joint_ids.empty()) {
-            std::vector<float> tmp_data;
-            tmp_data.resize(joint_ids.size());
-            for(size_t i = 0; i < joint_ids.size(); ++i){
-                tmp_data[i] = data[joint_ids[i]];
-            }
-            data = tmp_data;
+    const auto joint_ids = observation_joint_ids(params);
+    if(!joint_ids.empty()) {
+        std::vector<float> selected(joint_ids.size());
+        for(size_t i = 0; i < joint_ids.size(); ++i){
+            selected[i] = data[joint_ids[i]];
         }
-    } catch(const std::exception& e) {
-    
+        data = std::move(selected);
     }
 
     return data;
 }
 
-REGISTER_OBSERVATION(joint_vel_rel)
+REGISTER_OBSERVATION(joint_vel)
 {
     auto & asset = env->robot;
     auto data = asset->data.joint_vel;
 
-    try {
-        const std::vector<int> joint_ids = params["asset_cfg"]["joint_ids"].as<std::vector<int>>();
-
-        if(!joint_ids.empty()) {
-            data.resize(joint_ids.size());
-            for(size_t i = 0; i < joint_ids.size(); ++i) {
-                data[i] = asset->data.joint_vel[joint_ids[i]];
-            }
+    const auto joint_ids = observation_joint_ids(params);
+    if(!joint_ids.empty()) {
+        data.resize(joint_ids.size());
+        for(size_t i = 0; i < joint_ids.size(); ++i) {
+            data[i] = asset->data.joint_vel[joint_ids[i]];
         }
-    } catch(const std::exception& e) {
     }
     return std::vector<float>(data.data(), data.data() + data.size());
 }
 
 REGISTER_OBSERVATION(last_action)
 {
-    auto data = env->action_manager->action();
+    auto data = env->action_manager->normalized_actions();
     return std::vector<float>(data.data(), data.data() + data.size());
 };
 
@@ -122,13 +116,6 @@ REGISTER_OBSERVATION(velocity_commands)
     obs[0] = std::clamp(-raw_ly, cfg["lin_vel_x"][0].as<float>(), cfg["lin_vel_x"][1].as<float>());
     obs[1] = std::clamp(-raw_lx, cfg["lin_vel_y"][0].as<float>(), cfg["lin_vel_y"][1].as<float>());
     obs[2] = std::clamp(-raw_rx, cfg["ang_vel_z"][0].as<float>(), cfg["ang_vel_z"][1].as<float>());
-
-    static auto last_log_time = std::chrono::steady_clock::now();
-    const auto now = std::chrono::steady_clock::now();
-    if (std::chrono::duration<double>(now - last_log_time).count() > 0.5) {
-        // spdlog::debug("Velocity obs: raw(lx={:.3f}, ly={:.3f}, rx={:.3f}) cmd(vx={:.3f}, vy={:.3f}, wz={:.3f})", raw_lx, raw_ly, raw_rx, obs[0], obs[1], obs[2]);
-        last_log_time = now;
-    }
 
     return obs;
 }

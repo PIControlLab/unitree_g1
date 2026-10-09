@@ -1,0 +1,37 @@
+schema_version: 1
+motor_count: 29
+
+inactive_joint_control:
+  stiffness: 0.0
+  damping: 0.5
+
+joints:
+  - {name: left_hip_pitch_joint,      motor_id: 0,  active: true}
+  - {name: left_hip_roll_joint,       motor_id: 1,  active: true}
+  - {name: left_hip_yaw_joint,        motor_id: 2,  active: true}
+  - {name: left_knee_joint,           motor_id: 3,  active: true}
+  - {name: left_ankle_pitch_joint,    motor_id: 4,  active: true}
+  - {name: left_ankle_roll_joint,     motor_id: 5,  active: true}
+  - {name: right_hip_pitch_joint,     motor_id: 6,  active: true}
+  - {name: right_hip_roll_joint,      motor_id: 7,  active: true}
+  - {name: right_hip_yaw_joint,       motor_id: 8,  active: true}
+  - {name: right_knee_joint,          motor_id: 9,  active: true}
+  - {name: right_ankle_pitch_joint,   motor_id: 10, active: true}
+  - {name: right_ankle_roll_joint,    motor_id: 11, active: true}
+  - {name: waist_yaw_joint,           motor_id: 12, active: true}
+  - {name: waist_roll_joint,          motor_id: 13, active: false}
+  - {name: waist_pitch_joint,         motor_id: 14, active: false}
+  - {name: left_shoulder_pitch_joint, motor_id: 15, active: true}
+  - {name: left_shoulder_roll_joint,  motor_id: 16, active: true}
+  - {name: left_shoulder_yaw_joint,   motor_id: 17, active: true}
+  - {name: left_elbow_joint,          motor_id: 18, active: true}
+  - {name: left_wrist_roll_joint,     motor_id: 19, active: true}
+  - {name: left_wrist_pitch_joint,    motor_id: 20, active: false}
+  - {name: left_wrist_yaw_joint,      motor_id: 21, active: false}
+  - {name: right_shoulder_pitch_joint,motor_id: 22, active: true}
+  - {name: right_shoulder_roll_joint, motor_id: 23, active: true}
+  - {name: right_shoulder_yaw_joint,  motor_id: 24, active: true}
+  - {name: right_elbow_joint,         motor_id: 25, active: true}
+  - {name: right_wrist_roll_joint,    motor_id: 26, active: true}
+  - {name: right_wrist_pitch_joint,   motor_id: 27, active: false}
+  - {name: right_wrist_yaw_joint,     motor_id: 28, active: false}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "default_id": "tracking/walk",
+  "sample_offset_steps": 1,
+  "entries": [
+    {"id": "tracking/walk", "function": "tracking", "label": "Walk / 行走", "playback": "sequence", "latent_file": "latents/tracking_walk.npz", "sample_rate_hz": 50.0, "duration_s": 10.0},
+    {"id": "tracking/run", "function": "tracking", "label": "Run / 跑步", "playback": "sequence", "latent_file": "latents/tracking_run.npz", "sample_rate_hz": 50.0, "duration_s": 10.0},
+    {"id": "tracking/jump", "function": "tracking", "label": "Jump / 跳跃", "playback": "sequence", "latent_file": "latents/tracking_jump.npz", "sample_rate_hz": 50.0, "duration_s": 10.0},
+    {"id": "tracking/dance", "function": "tracking", "label": "Dance / 舞蹈", "playback": "sequence", "latent_file": "latents/tracking_dance.npz", "sample_rate_hz": 50.0, "duration_s": 10.0},
+    {"id": "tracking/get_up", "function": "tracking", "label": "Fall and get up / 跌倒起身", "playback": "sequence", "latent_file": "latents/tracking_get_up.npz", "sample_rate_hz": 50.0, "duration_s": 10.0},
+    {"id": "goal_reaching/stand_pose", "function": "goal_reaching", "label": "Stand pose / 站立目标姿态", "playback": "constant", "latent_file": "latents/goal_stand_pose.npz", "sample_rate_hz": 50.0},
+    {"id": "goal_reaching/walk_pose", "function": "goal_reaching", "label": "Walk pose / 行走目标姿态", "playback": "constant", "latent_file": "latents/goal_walk_pose.npz", "sample_rate_hz": 50.0},
+    {"id": "goal_reaching/run_pose", "function": "goal_reaching", "label": "Run pose / 跑步目标姿态", "playback": "constant", "latent_file": "latents/goal_run_pose.npz", "sample_rate_hz": 50.0},
+    {"id": "goal_reaching/jump_pose", "function": "goal_reaching", "label": "Jump pose / 跳跃目标姿态", "playback": "constant", "latent_file": "latents/goal_jump_pose.npz", "sample_rate_hz": 50.0},
+    {"id": "goal_reaching/dance_pose", "function": "goal_reaching", "label": "Dance pose / 舞蹈目标姿态", "playback": "constant", "latent_file": "latents/goal_dance_pose.npz", "sample_rate_hz": 50.0},
+    {"id": "goal_reaching/get_up_pose", "function": "goal_reaching", "label": "Get-up pose / 起身目标姿态", "playback": "constant", "latent_file": "latents/goal_get_up_pose.npz", "sample_rate_hz": 50.0},
+    {"id": "reward_inference/forward_0_3", "function": "reward_inference", "label": "Forward 0.3 m/s / 慢速前进", "playback": "constant", "latent_file": "latents/reward_forward_0_3.npz", "sample_rate_hz": 50.0},
+    {"id": "reward_inference/forward_0_7", "function": "reward_inference", "label": "Forward 0.7 m/s / 中速前进", "playback": "constant", "latent_file": "latents/reward_forward_0_7.npz", "sample_rate_hz": 50.0},
+    {"id": "reward_inference/forward_1_0", "function": "reward_inference", "label": "Forward 1.0 m/s / 快速前进", "playback": "constant", "latent_file": "latents/reward_forward_1_0.npz", "sample_rate_hz": 50.0}
+  ]
+}

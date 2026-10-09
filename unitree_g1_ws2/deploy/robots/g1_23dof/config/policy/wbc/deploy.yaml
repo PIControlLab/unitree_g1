@@ -1,0 +1,97 @@
+schema_version: 2
+robot_profile: config/robot/g1_23dof.yaml
+
+timing:
+  policy_dt: 0.02
+  run_first_step_on_enter: false
+
+joints:
+  joint_names:
+    [left_hip_pitch_joint, right_hip_pitch_joint, waist_yaw_joint,
+     left_hip_roll_joint, right_hip_roll_joint, waist_roll_joint,
+     left_hip_yaw_joint, right_hip_yaw_joint, waist_pitch_joint,
+     left_knee_joint, right_knee_joint,
+     left_shoulder_pitch_joint, right_shoulder_pitch_joint,
+     left_ankle_pitch_joint, right_ankle_pitch_joint,
+     left_shoulder_roll_joint, right_shoulder_roll_joint,
+     left_ankle_roll_joint, right_ankle_roll_joint,
+     left_shoulder_yaw_joint, right_shoulder_yaw_joint,
+     left_elbow_joint, right_elbow_joint,
+     left_wrist_roll_joint, right_wrist_roll_joint,
+     left_wrist_pitch_joint, right_wrist_pitch_joint,
+     left_wrist_yaw_joint, right_wrist_yaw_joint]
+  default_joint_pos:
+    [-0.312, -0.312, 0, 0, 0, 0, 0, 0, 0, 0.669, 0.669, 0.2, 0.2,
+     -0.363, -0.363, 0.2, -0.2, 0, 0, 0, 0, 0.6, 0.6, 0, 0, 0, 0, 0, 0]
+
+control:
+  mode: 1
+  stiffness:
+    [99.0984, 99.0984, 40.1792, 99.0984, 99.0984, 28.5012, 40.1792,
+     40.1792, 28.5012, 99.0984, 99.0984, 14.2506, 14.2506, 28.5012,
+     28.5012, 14.2506, 14.2506, 28.5012, 28.5012, 14.2506, 14.2506,
+     14.2506, 14.2506, 14.2506, 14.2506, 8.61103, 8.61103, 8.61103, 8.61103]
+  damping:
+    [6.3088, 6.3088, 2.55789, 6.3088, 6.3088, 1.81445, 2.55789, 2.55789,
+     1.81445, 6.3088, 6.3088, 0.907223, 0.907223, 1.81445, 1.81445,
+     0.907223, 0.907223, 1.81445, 1.81445, 0.907223, 0.907223, 0.907223,
+     0.907223, 0.907223, 0.907223, 0.548195, 0.548195, 0.548195, 0.548195]
+  effort_limit:
+    [139, 139, 88, 139, 139, 50, 88, 88, 50, 139, 139, 25, 25, 50, 50,
+     25, 25, 50, 50, 25, 25, 25, 25, 25, 25, 5, 5, 5, 5]
+
+model:
+  policy:
+    files: [config/policy/wbc/model.onnx]
+
+reference:
+  manifest: config/policy/wbc/reference/reference.yaml
+  start_frame: 100
+  end_frame: 300
+  sample_offset_steps: 1
+  frame_interval: 5
+
+observations:
+  obs:
+    blocks:
+      - layout: term_major
+        terms:
+          - {source: reference_joint_pos, clip: [-100, 100]}
+          - {source: reference_joint_vel, clip: [-100, 100]}
+          - {source: reference_anchor_pos, clip: [-100, 100]}
+          - {source: reference_anchor_orientation_6d, clip: [-100, 100]}
+      - layout: frame_major
+        terms:
+          - source: base_ang_vel
+            clip: [-100, 100]
+            history: &wbc_history
+              {length: 4, order: oldest_to_newest, reset: zeros, update_phase: before_inference}
+          - {source: projected_gravity, clip: [-100, 100], history: *wbc_history}
+          - {source: joint_pos_rel, clip: [-100, 100], history: *wbc_history}
+          - {source: joint_vel, clip: [-100, 100], history: *wbc_history}
+          - {source: last_action, clip: [-100, 100], history: *wbc_history}
+
+actions:
+  type: joint_position
+  raw_action_scale: 1.0
+  raw_action_clip: [-100.0, 100.0]
+  action_target_scale:
+    [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
+     0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
+     0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+  add_default_joint_pos: true
+  position_clip: null
+  effort_limit_mode: none
+
+handover:
+  position_blend_duration: 1.0
+
+safety:
+  bad_orientation:
+    enabled: false
+    threshold_rad: 1.0
+    warmup_steps: 0
+    target_state: Passive
+  reference_gravity_error:
+    threshold: 0.9
+    target_state: Passive

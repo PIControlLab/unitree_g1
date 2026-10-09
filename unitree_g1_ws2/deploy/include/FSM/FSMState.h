@@ -14,8 +14,6 @@
 namespace test {
     inline std::unique_ptr<UnitreeJoystickBridge> remote_joystick;
     inline std::unique_ptr<ArmBridge> arm_bridge;
-    inline std::optional<std::chrono::steady_clock::time_point> last_combo_log_time_;
-    inline bool velocity_soft_arms = false;  // WBC/Mimic 退出前设 true，Velocity 据此决定是否软臂
 }
 
 
@@ -68,16 +66,6 @@ public:
             test::remote_joystick->apply(lowstate->joystick);
         }
 
-        auto now = std::chrono::steady_clock::now();
-        if(lowstate->joystick.LT.pressed && lowstate->joystick.up.on_pressed) {
-            test::last_combo_log_time_ = now;
-        }
-        if(lowstate->joystick.RB.pressed && lowstate->joystick.X.on_pressed) {
-            test::last_combo_log_time_ = now;
-        }
-        if(lowstate->joystick.LT.pressed && lowstate->joystick.B.on_pressed) {
-            test::last_combo_log_time_ = now;
-        }
     }
 
     void post_run()

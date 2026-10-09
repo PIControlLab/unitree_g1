@@ -3,6 +3,7 @@ project(g1_23dof_controller)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(yaml-cpp REQUIRED)
+find_package(ZLIB REQUIRED)
 set(EXPORT_COMPILE_COMMANDS ON)
 include_directories(
   /usr/include/eigen3
@@ -11,6 +12,7 @@ include_directories(
   include
   ${PROJECT_SOURCE_DIR}/../../thirdparty/onnxruntime-linux-x64-1.22.0/include
   ${PROJECT_SOURCE_DIR}/../../include/
+  ${PROJECT_SOURCE_DIR}/../../thirdparty/cnpy
 )
 
 link_directories(
@@ -27,7 +29,11 @@ file(GLOB_RECURSE ADD_SRC_LIST
   ${PROJECT_SOURCE_DIR}/src/*.cpp
 )
 
-add_library(${PROJECT_NAME}_lib ${ADD_SRC_LIST})
+add_library(${PROJECT_NAME}_lib
+  ${ADD_SRC_LIST}
+  ${PROJECT_SOURCE_DIR}/../../thirdparty/cnpy/cnpy.cpp
+)
+target_link_libraries(${PROJECT_NAME}_lib PUBLIC ZLIB::ZLIB)
 link_libraries(${PROJECT_NAME}_lib)
 
 add_executable(g1_ctrl main.cpp)

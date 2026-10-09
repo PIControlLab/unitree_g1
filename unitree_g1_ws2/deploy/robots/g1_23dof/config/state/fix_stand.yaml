@@ -1,0 +1,29 @@
+schema_version: 2
+robot_profile: config/robot/g1_23dof.yaml
+
+joints:
+  joint_names:
+    [left_hip_pitch_joint, left_hip_roll_joint, left_hip_yaw_joint,
+     left_knee_joint, left_ankle_pitch_joint, left_ankle_roll_joint,
+     right_hip_pitch_joint, right_hip_roll_joint, right_hip_yaw_joint,
+     right_knee_joint, right_ankle_pitch_joint, right_ankle_roll_joint,
+     waist_yaw_joint,
+     left_shoulder_pitch_joint, left_shoulder_roll_joint,
+     left_shoulder_yaw_joint, left_elbow_joint, left_wrist_roll_joint,
+     right_shoulder_pitch_joint, right_shoulder_roll_joint,
+     right_shoulder_yaw_joint, right_elbow_joint, right_wrist_roll_joint]
+  default_joint_pos:
+    [-0.1, 0, 0, 0.3, -0.2, 0, -0.1, 0, 0, 0.3, -0.2, 0, 0,
+     0, 0.25, 0, 0.97, 0.15, 0, -0.25, 0, 0.97, -0.15]
+
+control:
+  mode: 1
+  stiffness:
+    [100, 100, 100, 150, 40, 40, 100, 100, 100, 150, 40, 40, 200,
+     40, 40, 40, 40, 40, 40, 40, 40, 40, 40]
+  damping:
+    [2, 2, 2, 4, 2, 2, 2, 2, 2, 4, 2, 2, 5,
+     10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+
+trajectory:
+  duration: 3.0

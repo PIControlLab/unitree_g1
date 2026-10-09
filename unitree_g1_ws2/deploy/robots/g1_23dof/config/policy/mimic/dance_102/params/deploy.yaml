@@ -1,60 +1,79 @@
-joint_ids_map: [0, 6, 12, 1, 7, 15, 22, 2, 8, 16, 23, 3, 9, 17, 24, 4, 10, 18, 25,
-  5, 11, 19, 26]
-step_dt: 0.02
-stiffness: [40.2, 99.1, 40.2, 99.1, 28.5, 28.5, 40.2, 99.1, 40.2, 99.1, 28.5, 28.5,
-  40.2, 0.0, 0.0, 14.3, 14.3, 14.3, 14.3, 14.3, 0.0, 0.0, 14.3, 14.3, 14.3, 14.3,
-  14.3]
-damping: [2.56, 6.31, 2.56, 6.31, 1.81, 1.81, 2.56, 6.31, 2.56, 6.31, 1.81, 1.81,
-  2.56, 0.0, 0.0, 0.907, 0.907, 0.907, 0.907, 0.907, 0.0, 0.0, 0.907, 0.907, 0.907,
-  0.907, 0.907]
-default_joint_pos: [-0.302, -0.319, 0.00124, 0.000442, 0.00489, 0.202, 0.209, 0.00796,
-  0.00546, 0.203, -0.199, 0.669, 0.671, -0.00489, 0.00793, -0.369, -0.359, 0.594,
-  0.61, 0.00258, -0.00029, 0.155, -0.154]
-commands: {}
-actions:
-  JointPositionAction:
-    clip: null
-    joint_names: [.*]
-    scale: [0.548, 0.548, 0.548, 0.351, 0.351, 0.439, 0.439, 0.548, 0.548, 0.439,
-      0.439, 0.351, 0.351, 0.439, 0.439, 0.439, 0.439, 0.439, 0.439, 0.439, 0.439,
-      0.439, 0.439]
-    offset: [-0.302, -0.319, 0.00124, 0.000442, 0.00489, 0.202, 0.209, 0.00796, 0.00546,
-      0.203, -0.199, 0.669, 0.671, -0.00489, 0.00793, -0.369, -0.359, 0.594, 0.61,
-      0.00258, -0.00029, 0.155, -0.154]
-    joint_ids: null
+schema_version: 2
+robot_profile: config/robot/g1_23dof.yaml
+
+timing:
+  policy_dt: 0.02
+  run_first_step_on_enter: false
+
+joints:
+  joint_names:
+    [left_hip_pitch_joint, right_hip_pitch_joint, waist_yaw_joint,
+     left_hip_roll_joint, right_hip_roll_joint,
+     left_shoulder_pitch_joint, right_shoulder_pitch_joint,
+     left_hip_yaw_joint, right_hip_yaw_joint,
+     left_shoulder_roll_joint, right_shoulder_roll_joint,
+     left_knee_joint, right_knee_joint,
+     left_shoulder_yaw_joint, right_shoulder_yaw_joint,
+     left_ankle_pitch_joint, right_ankle_pitch_joint,
+     left_elbow_joint, right_elbow_joint,
+     left_ankle_roll_joint, right_ankle_roll_joint,
+     left_wrist_roll_joint, right_wrist_roll_joint]
+  default_joint_pos:
+    [-0.302, -0.319, 0.00124, 0.000442, 0.00489, 0.202, 0.209, 0.00796,
+     0.00546, 0.203, -0.199, 0.669, 0.671, -0.00489, 0.00793, -0.369,
+     -0.359, 0.594, 0.61, 0.00258, -0.00029, 0.155, -0.154]
+
+control:
+  mode: 1
+  stiffness:
+    [40.2, 40.2, 40.2, 99.1, 99.1, 14.3, 14.3, 40.2, 40.2, 14.3, 14.3,
+     99.1, 99.1, 14.3, 14.3, 28.5, 28.5, 14.3, 14.3, 28.5, 28.5, 14.3, 14.3]
+  damping:
+    [2.56, 2.56, 2.56, 6.31, 6.31, 0.907, 0.907, 2.56, 2.56, 0.907, 0.907,
+     6.31, 6.31, 0.907, 0.907, 1.81, 1.81, 0.907, 0.907, 1.81, 1.81, 0.907, 0.907]
+  effort_limit:
+    [139, 139, 88, 139, 139, 25, 25, 88, 88, 25, 25, 139, 139, 25, 25,
+     50, 50, 25, 25, 50, 50, 25, 25]
+
+model:
+  policy:
+    files: [config/policy/mimic/dance_102/exported/policy.onnx]
+
+reference:
+  manifest: config/policy/mimic/dance_102/reference/reference.yaml
+  start_time: 0.0
+  end_time: 28.0
+
 observations:
-  motion_command:
-    params: {command_name: motion}
-    clip: null
-    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    history_length: 1
-  motion_anchor_ori_b:
-    params: {command_name: motion}
-    clip: null
-    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    history_length: 1
-  base_ang_vel:
-    params: {}
-    clip: null
-    scale: [1.0, 1.0, 1.0]
-    history_length: 1
-  joint_pos_rel:
-    params: {}
-    clip: null
-    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    history_length: 1
-  joint_vel_rel:
-    params: {}
-    clip: null
-    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    history_length: 1
-  last_action:
-    params: {}
-    clip: null
-    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    history_length: 1
+  obs:
+    blocks:
+      - layout: term_major
+        terms:
+          - {source: reference_joint_state}
+          - {source: reference_anchor_orientation_6d}
+          - {source: base_ang_vel}
+          - {source: joint_pos_rel}
+          - {source: joint_vel}
+          - {source: last_action}
+
+actions:
+  type: joint_position
+  raw_action_scale: 1.0
+  raw_action_clip: null
+  action_target_scale:
+    [0.548, 0.548, 0.548, 0.351, 0.351, 0.439, 0.439, 0.548, 0.548, 0.439,
+     0.439, 0.351, 0.351, 0.439, 0.439, 0.439, 0.439, 0.439, 0.439, 0.439,
+     0.439, 0.439, 0.439]
+  add_default_joint_pos: true
+  position_clip: null
+  effort_limit_mode: none
+
+handover:
+  position_blend_duration: 0.0
+
+safety:
+  bad_orientation:
+    enabled: true
+    threshold_rad: 1.0
+    warmup_steps: 0
+    target_state: Passive
