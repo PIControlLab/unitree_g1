@@ -1,0 +1,16 @@
+robot: "go2"  # Robot name, "go2", "b2", "b2w", "h1", "go2w", "g1", "h2", "as2"
+robot_scene: "scene.xml" # Robot scene, /unitree_robots/[robot]/scene.xml 
+
+domain_id: 1  # Domain id
+interface: "eth0" # Interface
+# DDS IDL type: -1 auto, 0 unitree_go, 1 unitree_hg. Auto selects unitree_hg for as2.
+idl_type: -1
+
+use_joystick: 0 # Simulate Unitree WirelessController using a gamepad
+joystick_type: "xbox" # support "xbox" and "switch" gamepad layout
+joystick_device: "/dev/input/js0" # Device path
+joystick_bits: 16 # Some game controllers may only have 8-bit accuracy
+
+print_scene_information: 1 # Print link, joint and sensors information of robot
+
+enable_elastic_band: 1 # Virtual spring band, used for lifting h1

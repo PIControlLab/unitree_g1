@@ -2,7 +2,7 @@
 # 以本脚本所在目录作为项目根目录，避免依赖用户的 clone 路径。
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-# 删除共享内存中的旧 JSON 文件，用于清理旧的摇杆、策略或手臂控制数据。
+# 删除共享内存中的旧 JSON 文件，用于清理摇杆、FSM 状态和策略选择数据。
 rm -f /dev/shm/unitree_*.json
 
 echo "Setup G1 workspace (simulation)"

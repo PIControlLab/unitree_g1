@@ -7,14 +7,12 @@
 #include "State_UFO.h"
 #include "FSM/State_WBC.h"
 #include "UnitreeJoystickBridge.h"
-#include "PolicyPublisher.h"
 #include <memory>
 
 std::unique_ptr<LowCmd_t> FSMState::lowcmd = nullptr;
 LowCmd_t::MsgType FSMState::command_msg{};
 std::shared_ptr<LowState_t> FSMState::lowstate = nullptr;
 std::shared_ptr<Keyboard> FSMState::keyboard = nullptr;
-std::unique_ptr<PolicyPublisher> FSMState::policy_publisher = nullptr;
 
 void init_fsm_state()
 {
@@ -27,10 +25,6 @@ void init_fsm_state()
     if (isatty(STDIN_FILENO)) {
         FSMState::keyboard = std::make_shared<Keyboard>();
     }
-
-    // The optional JSON bridge is disabled for direct DDS control.
-    // FSMState::policy_publisher = std::make_unique<PolicyPublisher>(
-    //     "/dev/shm/unitree_policy_bridge.json");
 
     spdlog::info("Waiting for connection to robot...");
     FSMState::lowstate->wait_for_connection();

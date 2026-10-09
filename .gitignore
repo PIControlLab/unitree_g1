@@ -50,10 +50,8 @@ env/
 *_pb2.py
 *_pb2_grpc.py
 
-# ===== 官网 workspace（不纳入版本管理） =====
-unitree_mujoco/
-unitree_sdk2/
-unitree_ros2/
+# ===== Local reports =====
+mdreports/
 
 # ===== Core dumps =====
 core

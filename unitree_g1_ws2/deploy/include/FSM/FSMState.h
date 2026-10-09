@@ -6,14 +6,10 @@
 #include "isaaclab/devices/keyboard/keyboard.h"
 #include "unitree_joystick_dsl.hpp"
 #include "UnitreeJoystickBridge.h"
-#include "ArmBridge.h"
-#include "PolicyPublisher.h"
-#include "memory"
-#include <chrono>
+#include <memory>
 
 namespace test {
     inline std::unique_ptr<UnitreeJoystickBridge> remote_joystick;
-    inline std::unique_ptr<ArmBridge> arm_bridge;
 }
 
 
@@ -70,9 +66,7 @@ public:
 
     void post_run()
     {
-        if (policy_publisher) {
-            policy_publisher->write(command_msg);
-        } else if (lowcmd->trylock()) {
+        if (lowcmd->trylock()) {
             // The SDK worker copies msg_ under this lock after unlockAndPublish().
             lowcmd->msg_ = command_msg;
             lowcmd->unlockAndPublish();
@@ -90,7 +84,6 @@ public:
     static LowCmd_t::MsgType command_msg;
     static std::shared_ptr<LowState_t> lowstate;
     static std::shared_ptr<Keyboard> keyboard;
-    static std::unique_ptr<PolicyPublisher> policy_publisher;
 
 private:
     unsigned int publish_lock_misses_ = 0;
