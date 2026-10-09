@@ -11,21 +11,24 @@
 #include <memory>
 
 std::unique_ptr<LowCmd_t> FSMState::lowcmd = nullptr;
+LowCmd_t::MsgType FSMState::command_msg{};
 std::shared_ptr<LowState_t> FSMState::lowstate = nullptr;
 std::shared_ptr<Keyboard> FSMState::keyboard = nullptr;
 std::unique_ptr<PolicyPublisher> FSMState::policy_publisher = nullptr;
 
 void init_fsm_state()
 {
-    // Note: g1_ctrl no longer publishes lowcmd directly.
-    // Instead it writes JSON via PolicyPublisher,
-    // and the Python merger node owns the lowcmd channel.
+    // g1_ctrl publishes lowcmd directly over DDS.
     FSMState::lowcmd = std::make_unique<LowCmd_t>();
     FSMState::lowstate = std::make_shared<LowState_t>();
 
-    FSMState::keyboard = std::make_shared<Keyboard>();
+    // GUI launches with stdin=/dev/null; only enable terminal keyboard control
+    // for a direct, interactive g1_ctrl launch.
+    if (isatty(STDIN_FILENO)) {
+        FSMState::keyboard = std::make_shared<Keyboard>();
+    }
 
-    // 直接 DDS 通信，无需 g1_merger / PolicyPublisher
+    // The optional JSON bridge is disabled for direct DDS control.
     // FSMState::policy_publisher = std::make_unique<PolicyPublisher>(
     //     "/dev/shm/unitree_policy_bridge.json");
 
@@ -52,6 +55,9 @@ int main(int argc, char** argv)
         spdlog::critical("Unmatched robot type.");
         exit(-1);
     }
+
+    // The SDK worker has not been signaled to publish yet.
+    FSMState::command_msg = FSMState::lowcmd->msg_;
 
     auto fsm = std::make_unique<CtrlFSM>(param::config["FSM"]);
     fsm->start();

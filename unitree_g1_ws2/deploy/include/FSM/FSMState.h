@@ -71,14 +71,27 @@ public:
     void post_run()
     {
         if (policy_publisher) {
-            policy_publisher->write(lowcmd->msg_);
-        } else {
+            policy_publisher->write(command_msg);
+        } else if (lowcmd->trylock()) {
+            // The SDK worker copies msg_ under this lock after unlockAndPublish().
+            lowcmd->msg_ = command_msg;
             lowcmd->unlockAndPublish();
+            if (publish_lock_misses_ >= 20)
+                spdlog::info("LowCmd publisher recovered after {} missed ticks", publish_lock_misses_);
+            publish_lock_misses_ = 0;
+        } else if (++publish_lock_misses_ == 20 || publish_lock_misses_ % 1000 == 0) {
+            spdlog::warn("LowCmd publisher busy for {} consecutive control ticks", publish_lock_misses_);
         }
     }
 
     static std::unique_ptr<LowCmd_t> lowcmd;
+    // Only the FSM thread writes this staging message. The SDK publisher's
+    // msg_ is touched solely while trylock() is held in post_run().
+    static LowCmd_t::MsgType command_msg;
     static std::shared_ptr<LowState_t> lowstate;
     static std::shared_ptr<Keyboard> keyboard;
     static std::unique_ptr<PolicyPublisher> policy_publisher;
+
+private:
+    unsigned int publish_lock_misses_ = 0;
 };

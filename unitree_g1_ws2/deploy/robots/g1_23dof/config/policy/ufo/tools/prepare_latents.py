@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Precompute every UFO z used by the deployment catalog.
+"""Legacy reference-motion latent generator.
 
-Tracking and goal latents follow UFO FB exactly: B(s) is produced by the
-exported backward encoder, tracking averages the next ``seq_length`` values,
-and every result is projected to norm sqrt(z_dim). Reward latents use UFO's
-weighted-regression formula. By default the safe representative motion NPZs
-are the inference sample corpus; pass ``--reward-samples`` to use an NPZ with
-arrays ``z`` and ``reward_<task-id>`` generated from the training replay buffer.
+The deployed goal and reward latents come from a separate replay-derived
+package. This generator can still be used with an isolated output directory
+for experiments, but must not overwrite the deployed tracking/stand files.
+Use install_replay_latents.py for the current deployment package.
 """
 
 from __future__ import annotations
@@ -198,6 +196,9 @@ def main() -> None:
     parser.add_argument("--seq-length", type=int, default=8)
     parser.add_argument("--reward-samples", type=Path, default=None)
     args = parser.parse_args()
+    if args.output_dir.resolve() == Path(__file__).resolve().parent.parent / "latents":
+        parser.error("Refusing to overwrite deployed replay/tracking latents; use an isolated --output-dir")
+
 
     encoder = ort.InferenceSession(str(args.encoder), providers=["CPUExecutionProvider"])
     stand_state, stand_privileged, stand_target = fix_stand_encoder_input(

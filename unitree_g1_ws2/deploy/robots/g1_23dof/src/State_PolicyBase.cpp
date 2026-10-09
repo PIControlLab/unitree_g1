@@ -113,7 +113,7 @@ void State_PolicyBase::configure_motors()
     entry_joint_pos_.resize(layout_.names.size());
     for (const auto& joint : robot_profile_->motor_joints())
     {
-        auto& command = lowcmd->msg_.motor_cmd()[joint.motor_id];
+        auto& command = command_msg.motor_cmd()[joint.motor_id];
         command.mode() = control_mode_;
         command.q() = lowstate->msg_.motor_state()[joint.motor_id].q();
         command.dq() = 0.0f;
@@ -129,7 +129,7 @@ void State_PolicyBase::configure_motors()
         const int motor_id = layout_.motor_ids[i];
         entry_joint_pos_[i] = lowstate->msg_.motor_state()[motor_id].q();
         if (!layout_.active[i]) continue;
-        auto& command = lowcmd->msg_.motor_cmd()[motor_id];
+        auto& command = command_msg.motor_cmd()[motor_id];
         command.kp() = stiffness[i];
         command.kd() = damping[i];
     }
@@ -193,7 +193,7 @@ void State_PolicyBase::run()
         if (!layout_.active[i]) continue;
         const int motor_id = layout_.motor_ids[i];
         const float desired = entry_joint_pos_[i] + blend * (target[i] - entry_joint_pos_[i]);
-        auto& command = lowcmd->msg_.motor_cmd()[motor_id];
+        auto& command = command_msg.motor_cmd()[motor_id];
         if (effort_limit_mode_ == "equivalent_position")
         {
             const float q = lowstate->msg_.motor_state()[motor_id].q();
@@ -216,7 +216,7 @@ void State_PolicyBase::run()
     for (const auto& joint : robot_profile_->motor_joints())
     {
         if (joint.active) continue;
-        auto& command = lowcmd->msg_.motor_cmd()[joint.motor_id];
+        auto& command = command_msg.motor_cmd()[joint.motor_id];
         command.q() = lowstate->msg_.motor_state()[joint.motor_id].q();
         command.kp() = robot_profile_->inactive_stiffness;
         command.kd() = robot_profile_->inactive_damping;

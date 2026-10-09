@@ -71,6 +71,7 @@ int main(int argc, char** argv) {
     unitree::robot::ChannelFactory::Instance()->Init(domain_id, vm["network"].as<std::string>());
 
     auto lowcmd  = std::make_unique<LowCmd_t>();
+    LowCmd_t::MsgType command_msg{};
     auto lowstate = std::make_shared<LowState_t>();
 
     spdlog::info("Arm Ctrl: waiting for robot...");
@@ -84,14 +85,14 @@ int main(int argc, char** argv) {
     }
 
     // init LowCmd: all motors = enable + q far
-    lowcmd->msg_.mode_machine()=4;
+    command_msg.mode_machine()=4;
     for (int i=0;i<NUM_MOTORS;++i) {
-        lowcmd->msg_.motor_cmd()[i].mode()=1;
-        lowcmd->msg_.motor_cmd()[i].q()=PosStopF;
-        lowcmd->msg_.motor_cmd()[i].dq()=0;
-        lowcmd->msg_.motor_cmd()[i].kp()=0;
-        lowcmd->msg_.motor_cmd()[i].kd()=0;
-        lowcmd->msg_.motor_cmd()[i].tau()=0;
+        command_msg.motor_cmd()[i].mode()=1;
+        command_msg.motor_cmd()[i].q()=PosStopF;
+        command_msg.motor_cmd()[i].dq()=0;
+        command_msg.motor_cmd()[i].kp()=0;
+        command_msg.motor_cmd()[i].kd()=0;
+        command_msg.motor_cmd()[i].tau()=0;
     }
 
     spdlog::info("Arm Ctrl ready | {} joints @{}Hz", NUM_ARM, int(1.0/PERIOD));
@@ -100,6 +101,7 @@ int main(int argc, char** argv) {
     bool ready=false;
     auto t_next=steady_clock::now();
     int cnt=0;
+    unsigned int publish_misses=0;
 
     while (true) {
         t_next+=microseconds(int(PERIOD*1e6)); ++cnt;
@@ -137,7 +139,7 @@ int main(int argc, char** argv) {
         // apply & publish
         for (int i=0;i<NUM_ARM;++i) {
             auto& j=joints[i];
-            auto& m=lowcmd->msg_.motor_cmd()[j.idx];
+            auto& m=command_msg.motor_cmd()[j.idx];
             bool act=j.active(now);
             if (act) {
                 if (!j.was_active) j.q_target=j.q;
@@ -152,7 +154,15 @@ int main(int argc, char** argv) {
             m.mode()=0x01; m.dq()=0; m.kp()=j.kp; m.kd()=j.kd; m.tau()=j.i_err;
             j.was_active=act;
         }
-        lowcmd->unlockAndPublish();
+        if (lowcmd->trylock()) {
+            lowcmd->msg_ = command_msg;
+            lowcmd->unlockAndPublish();
+            if (publish_misses >= 10)
+                spdlog::info("Arm Ctrl publisher recovered after {} missed ticks", publish_misses);
+            publish_misses = 0;
+        } else if (++publish_misses == 10 || publish_misses % 50 == 0) {
+            spdlog::warn("Arm Ctrl publisher busy for {} consecutive ticks", publish_misses);
+        }
 
         if (cnt%50==0) {
             std::string s;

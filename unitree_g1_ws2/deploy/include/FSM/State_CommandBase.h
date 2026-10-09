@@ -30,7 +30,7 @@ protected:
     {
         for (const auto& joint : profile_->motor_joints())
         {
-            auto& command = lowcmd->msg_.motor_cmd()[joint.motor_id];
+            auto& command = command_msg.motor_cmd()[joint.motor_id];
             command.mode() = mode_;
             command.q() = lowstate->msg_.motor_state()[joint.motor_id].q();
             command.dq() = 0.0f;
@@ -40,7 +40,7 @@ protected:
         }
         for (size_t i = 0; i < layout_.names.size(); ++i)
         {
-            auto& command = lowcmd->msg_.motor_cmd()[layout_.motor_ids[i]];
+            auto& command = command_msg.motor_cmd()[layout_.motor_ids[i]];
             command.kp() = stiffness_[i];
             command.kd() = damping_[i];
         }
@@ -57,7 +57,7 @@ protected:
     void write_joint_pos(const std::vector<float>& position)
     {
         for (size_t i = 0; i < layout_.names.size(); ++i)
-            lowcmd->msg_.motor_cmd()[layout_.motor_ids[i]].q() = position[i];
+            command_msg.motor_cmd()[layout_.motor_ids[i]].q() = position[i];
     }
 
     YAML::Node config_;

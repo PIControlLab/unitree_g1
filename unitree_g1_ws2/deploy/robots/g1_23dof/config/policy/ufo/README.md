@@ -26,41 +26,33 @@ LT+Y 直接进入 UFO。
 
 当前 catalog 包含：
 
-- Tracking：walk、run、jump、dance、fall-and-get-up；
-- Goal reaching：站立目标，以及上述五段参考动作的静态目标帧；
-- Reward inference：forward 0.3/0.7/1.0 m/s（不再包含 stand）。
+- Tracking：walk、run、jump、dance、fall-and-get-up，原有逐帧 z 保持不变；
+- Goal reaching：FixStand 推导的站立目标，以及 14 个来自 23DoF motion cache 的有效单帧姿态；
+- Reward inference：9 个从约 22 GB replay buffer 推断的 locomotion/root 任务，包括静止、低姿态、前后左右移动和双向旋转。
 
 五个 tracking 片段来自 Windows 交付包中的代表动作：dance 70–80 s、get-up 80–90 s、
-jump 120–130 s、run 120–130 s、walk 130–140 s。
+jump 120–130 s、run 120–130 s、walk 130–140 s。站立目标的 observation 由
+`config/state/fix_stand.yaml` 的目标关节姿态和 MuJoCo 静态正向运动学构造。
+交付包没有这个 FixStand goal，因此保留原有的 `goal_reaching/stand_pose`；
+`reward_inference` 内的静止任务是独立的 replay reward latent，不会取代该 goal。
 
-## z 预计算
+## 服务器 latent 来源与导入
 
-`tools/prepare_latents.py` 实现与 UFO FB 一致的三条变换：
-
-1. Tracking：`B(s)` 后对未来 `seq_length=8` 帧求均值，再投影到范数 `sqrt(256)=16`；
-2. Goal reaching：对一个目标 observation 计算 `B(s_goal)` 并投影；
-3. Reward inference：`softmax(10*r)` 加权回归
-   `sum_i r_i * softmax(10r)_i * B(s_i)`，再投影。
-
-`goal_reaching/stand_pose` 的目标 observation 直接由 `config/state/fix_stand.yaml`
-中的目标关节姿态和 MuJoCo 静态正向运动学构造，不再从任何 tracking 轨迹抽帧。
-
-重新生成全部运行时 z：
+`source/` 保存服务器交付的安全 NPZ、manifest 和 goal 定义，不包含 22 GB replay
+buffer、pickle 或重复的 126 MB ONNX。交付 checkpoint 为 102,498,304 environment steps；
+每个 reward latent 基于 150,000 条采样 transition，目标帧速度设为 0。
+`tools/install_replay_latents.py` 校验 NPZ、目标定义和现有 ONNX 的 SHA-256，
+并验证名字、shape、float32 有限值及 L2 范数 16，随后生成 C++ 加载器需要的
+`z[1,256]` 单任务 NPZ 与 GUI/C++ 共用的 catalog：
 
 ```bash
-python unitree_g1_ws2/deploy/robots/g1_23dof/config/policy/ufo/tools/prepare_latents.py \
-  --encoder unitree_g1_ws2/deploy/robots/g1_23dof/config/policy/ufo/model/backward_encoder.onnx \
-  --reference-dir unitree_g1_ws2/deploy/robots/g1_23dof/config/policy/ufo/reference \
-  --output-dir unitree_g1_ws2/deploy/robots/g1_23dof/config/policy/ufo/latents \
-  --fix-stand-config unitree_g1_ws2/deploy/robots/g1_23dof/config/state/fix_stand.yaml \
-  --xml unitree_mujoco/unitree_robots/g1/g1_23dof.xml
+python unitree_g1_ws2/deploy/robots/g1_23dof/config/policy/ufo/tools/install_replay_latents.py
 ```
 
-官方高质量 reward inference 需要训练 replay buffer。当前交付包明确没有附带约 22 GB 的
-replay buffer，因此仓库内的三个 reward z 使用随包五段安全 motion reference 作为 sample
-corpus，并在 NPZ 中记录 sample count 和 reward 范围。拿到与该 checkpoint 匹配的 reduced
-replay buffer 后，应先导出含 `z` 以及各 `reward_<task-id>` 数组的安全 NPZ，再通过
-`--reward-samples` 重新生成；不要混用其他 checkpoint 的 replay buffer 或 z。
+`tools/prepare_latents.py` 保留作旧的参考动作 z 预计算工具，但不能用于重新生成当前
+replay reward/goal 集合，也不要对部署目录运行它，以免覆盖 tracking 文件。
+新增 goal 的名称来自原始 motion/frame，不保证实机一定能到达；请先逐项在 MuJoCo
+验证收敛、接触和关节限位。
 
 ## 模型契约
 

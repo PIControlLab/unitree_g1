@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QStackedWidget,
@@ -668,8 +669,12 @@ class ActionPanel(QFrame):
         velocity_layout.addStretch()
         self.pages.addWidget(self.velocity_page)
 
-        self.ufo_page = QWidget()
-        ufo_layout = QVBoxLayout(self.ufo_page)
+        self.ufo_page = QScrollArea()
+        self.ufo_page.setWidgetResizable(True)
+        self.ufo_page.setFrameShape(QFrame.NoFrame)
+        ufo_content = QWidget()
+        self.ufo_page.setWidget(ufo_content)
+        ufo_layout = QVBoxLayout(ufo_content)
         ufo_layout.setContentsMargins(0, 0, 0, 0)
         ufo_layout.setSpacing(8)
         ufo_note = QLabel("点击任一任务即可立即替换 latent z；Tracking 可被随时打断。")
@@ -960,6 +965,7 @@ class ProcessCard(QFrame):
             self.process = subprocess.Popen(
                 self.cmd,
                 cwd=self.cwd,
+                stdin=subprocess.DEVNULL,  # GUI control must not read or change the launch terminal
                 stdout=None,  # inherit the terminal that started the GUI
                 stderr=None,  # keep controller errors visible there too
                 preexec_fn=os.setsid,
