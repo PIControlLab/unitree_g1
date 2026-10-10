@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "default_id": "tracking/walk",
+  "sample_offset_steps": 1,
+  "entries": [
+    {
+      "id": "tracking/walk",
+      "function": "tracking",
+      "label": "行走",
+      "playback": "sequence",
+      "latent_file": "latents/tracking_walk.npz",
+      "sample_rate_hz": 50.0,
+      "duration_s": 10.0
+    },
+    {
+      "id": "tracking/run",
+      "function": "tracking",
+      "label": "跑步",
+      "playback": "sequence",
+      "latent_file": "latents/tracking_run.npz",
+      "sample_rate_hz": 50.0,
+      "duration_s": 10.0
+    },
+    {
+      "id": "tracking/jump",
+      "function": "tracking",
+      "label": "跳跃",
+      "playback": "sequence",
+      "latent_file": "latents/tracking_jump.npz",
+      "sample_rate_hz": 50.0,
+      "duration_s": 10.0
+    },
+    {
+      "id": "tracking/dance",
+      "function": "tracking",
+      "label": "舞蹈",
+      "playback": "sequence",
+      "latent_file": "latents/tracking_dance.npz",
+      "sample_rate_hz": 50.0,
+      "duration_s": 10.0
+    },
+    {
+      "id": "tracking/get_up",
+      "function": "tracking",
+      "label": "跌倒起身",
+      "playback": "sequence",
+      "latent_file": "latents/tracking_get_up.npz",
+      "sample_rate_hz": 50.0,
+      "duration_s": 10.0
+    },
+    {
+      "id": "goal_reaching/stand_pose",
+      "function": "goal_reaching",
+      "label": "站立目标姿态",
+      "playback": "constant",
+      "latent_file": "latents/goal_stand_pose.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fallAndGetUp1_subject4_2193",
+      "function": "goal_reaching",
+      "label": "低姿态 1",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_00.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fallAndGetUp1_subject4_2230",
+      "function": "goal_reaching",
+      "label": "低姿态 2",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_01.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fallAndGetUp1_subject4_3350",
+      "function": "goal_reaching",
+      "label": "低姿态 3",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_02.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fallAndGetUp1_subject4_5015",
+      "function": "goal_reaching",
+      "label": "低姿态 4",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_03.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/dance1_subject3_505",
+      "function": "goal_reaching",
+      "label": "舞蹈 1",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_04.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/dance2_subject4_700",
+      "function": "goal_reaching",
+      "label": "舞蹈 2",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_05.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/dance2_subject4_670",
+      "function": "goal_reaching",
+      "label": "舞蹈 3",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_06.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/dance1_subject2_1150",
+      "function": "goal_reaching",
+      "label": "舞蹈 4",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_11.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/dance1_subject2_2877",
+      "function": "goal_reaching",
+      "label": "舞蹈 5",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_12.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fightAndSports1_subject1_252",
+      "function": "goal_reaching",
+      "label": "格斗 1",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_07.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fightAndSports1_subject1_745",
+      "function": "goal_reaching",
+      "label": "格斗 2",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_08.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fightAndSports1_subject1_1009",
+      "function": "goal_reaching",
+      "label": "格斗 3",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_09.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/fight1_subject3_5559",
+      "function": "goal_reaching",
+      "label": "格斗 4",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_10.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "goal_reaching/walk2_subject1_2588",
+      "function": "goal_reaching",
+      "label": "行走",
+      "playback": "constant",
+      "latent_file": "latents/goal_replay_13.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/move-ego-0-0",
+      "function": "reward_inference",
+      "label": "保持静止",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_00.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/move-ego-low0.5-0-0",
+      "function": "reward_inference",
+      "label": "低姿态静止",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_01.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/move-ego-0-0.7",
+      "function": "reward_inference",
+      "label": "前进 0.7 m/s",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_02.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/move-ego-0-0.3",
+      "function": "reward_inference",
+      "label": "前进 0.3 m/s",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_03.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/move-ego-90-0.3",
+      "function": "reward_inference",
+      "label": "左移 0.3 m/s",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_04.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/move-ego-180-0.3",
+      "function": "reward_inference",
+      "label": "后退 0.3 m/s",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_05.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/move-ego--90-0.3",
+      "function": "reward_inference",
+      "label": "右移 0.3 m/s",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_06.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/rotate-z-5-0.5",
+      "function": "reward_inference",
+      "label": "左转 5 rad/s",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_07.npz",
+      "sample_rate_hz": 50.0
+    },
+    {
+      "id": "reward_inference/rotate-z--5-0.5",
+      "function": "reward_inference",
+      "label": "右转 5 rad/s",
+      "playback": "constant",
+      "latent_file": "latents/reward_replay_08.npz",
+      "sample_rate_hz": 50.0
+    }
+  ]
+}

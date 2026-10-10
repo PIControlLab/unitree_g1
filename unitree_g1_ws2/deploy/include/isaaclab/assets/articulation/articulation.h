@@ -18,6 +18,7 @@ struct ArticulationData
 
     std::vector<float> joint_stiffness; // sdk order
     std::vector<float> joint_damping; // sdk order
+    std::vector<float> joint_effort_limit;
 
     // Joint positions of all joints.
     Eigen::VectorXf joint_pos;
@@ -36,7 +37,9 @@ struct ArticulationData
 
     Eigen::Quaternionf root_quat_w;
 
-    std::vector<float> joint_ids_map;
+    std::vector<std::string> joint_names;
+    std::vector<int> joint_ids_map;
+    std::vector<bool> joint_active;
 
     unitree::common::UnitreeJoystick* joystick = nullptr;
 };

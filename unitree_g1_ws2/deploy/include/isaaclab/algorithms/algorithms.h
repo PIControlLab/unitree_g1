@@ -1,11 +1,14 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
 #pragma once
 
-#include "onnxruntime_cxx_api.h"
-#include <iostream>
-#include <mutex>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <onnxruntime_cxx_api.h>
 
 namespace isaaclab
 {
@@ -13,96 +16,82 @@ namespace isaaclab
 class Algorithms
 {
 public:
-    virtual std::vector<float> act(std::unordered_map<std::string, std::vector<float>> obs) = 0;
-
-    std::vector<float> get_action()
-    {
-        std::lock_guard<std::mutex> lock(act_mtx_);
-        return action;
-    }
-    
-    std::vector<float> action;
-protected:
-    std::mutex act_mtx_;
+    virtual ~Algorithms() = default;
+    virtual std::vector<float> act(
+        const std::unordered_map<std::string, std::vector<float>>& observations) = 0;
 };
 
 class OrtRunner : public Algorithms
 {
 public:
-    OrtRunner(std::string model_path)
+    explicit OrtRunner(const std::vector<std::filesystem::path>& model_files)
+        : env_(ORT_LOGGING_LEVEL_WARNING, "policy")
     {
-        // Init Model
-        env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "onnx_model");
-        session_options.SetGraphOptimizationLevel(ORT_ENABLE_EXTENDED);
-
-        session = std::make_unique<Ort::Session>(env, model_path.c_str(), session_options);
-
-        for (size_t i = 0; i < session->GetInputCount(); ++i) {
-            Ort::TypeInfo input_type = session->GetInputTypeInfo(i);
-            input_shapes.push_back(input_type.GetTensorTypeAndShapeInfo().GetShape());
-            auto input_name = session->GetInputNameAllocated(i, allocator);
-            input_names.push_back(input_name.release());
+        session_options_.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        if (model_files.size() == 1)
+        {
+            session_ = std::make_unique<Ort::Session>(
+                env_, model_files.front().c_str(), session_options_);
         }
-
-        for (const auto& shape : input_shapes) {
-            size_t size = 1;
-            for (const auto& dim : shape) {
-                size *= dim;
+        else
+        {
+            for (const auto& path : model_files)
+            {
+                std::ifstream stream(path, std::ios::binary);
+                model_bytes_.insert(
+                    model_bytes_.end(), std::istreambuf_iterator<char>(stream), {});
             }
-            input_sizes.push_back(size);
+            session_ = std::make_unique<Ort::Session>(
+                env_, model_bytes_.data(), model_bytes_.size(), session_options_);
         }
 
-        // Get output shape
-        Ort::TypeInfo output_type = session->GetOutputTypeInfo(0);
-        output_shape = output_type.GetTensorTypeAndShapeInfo().GetShape();
-        auto output_name = session->GetOutputNameAllocated(0, allocator);
-        output_names.push_back(output_name.release());
-
-        action.resize(output_shape[1]);
+        for (size_t i = 0; i < session_->GetInputCount(); ++i)
+        {
+            input_names_.push_back(session_->GetInputNameAllocated(i, allocator_).get());
+            input_shapes_.push_back(session_->GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
+            if (input_shapes_.back()[0] < 0) input_shapes_.back()[0] = 1;
+        }
+        output_name_ = session_->GetOutputNameAllocated(0, allocator_).get();
+        output_shape_ = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+        if (output_shape_[0] < 0) output_shape_[0] = 1;
     }
 
-    std::vector<float> act(std::unordered_map<std::string, std::vector<float>> obs)
+    std::vector<float> act(
+        const std::unordered_map<std::string, std::vector<float>>& observations) override
     {
-        auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+        auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeCPU);
+        std::vector<Ort::Value> tensors;
+        std::vector<const char*> names;
+        tensors.reserve(input_names_.size());
+        names.reserve(input_names_.size());
 
-        // make sure all input names are in obs
-        for (const auto& name : input_names) {
-            if (obs.find(name) == obs.end()) {
-                throw std::runtime_error("Input name " + std::string(name) + " not found in observations.");
-            }
-        }
-
-        // Create input tensors
-        std::vector<Ort::Value> input_tensors;
-        for(int i(0); i<input_names.size(); ++i)
+        for (size_t i = 0; i < input_names_.size(); ++i)
         {
-            const std::string name_str(input_names[i]);
-            auto& input_data = obs.at(name_str);
-            auto input_tensor = Ort::Value::CreateTensor<float>(memory_info, input_data.data(), input_sizes[i], input_shapes[i].data(), input_shapes[i].size());
-            input_tensors.push_back(std::move(input_tensor));
+            const auto& values = observations.at(input_names_[i]);
+            names.push_back(input_names_[i].c_str());
+            tensors.push_back(Ort::Value::CreateTensor<float>(
+                memory, const_cast<float*>(values.data()), values.size(),
+                input_shapes_[i].data(), input_shapes_[i].size()));
         }
 
-        // Run the model
-        auto output_tensor = session->Run(Ort::RunOptions{nullptr}, input_names.data(), input_tensors.data(), input_tensors.size(), output_names.data(), 1);
-
-        // Copy output data
-        auto floatarr = output_tensor.front().GetTensorMutableData<float>();
-        std::lock_guard<std::mutex> lock(act_mtx_);
-        std::memcpy(action.data(), floatarr, output_shape[1] * sizeof(float));
-        return action;
+        const char* output_name = output_name_.c_str();
+        auto outputs = session_->Run(
+            Ort::RunOptions{nullptr}, names.data(), tensors.data(), tensors.size(),
+            &output_name, 1);
+        const float* data = outputs.front().GetTensorData<float>();
+        return std::vector<float>(data, data + output_shape_[1]);
     }
 
 private:
-    Ort::Env env;
-    Ort::SessionOptions session_options;
-    std::unique_ptr<Ort::Session> session;
-    Ort::AllocatorWithDefaultOptions allocator;
-
-    std::vector<const char*> input_names;
-    std::vector<const char*> output_names;
-
-    std::vector<std::vector<int64_t>> input_shapes;
-    std::vector<int64_t> input_sizes;
-    std::vector<int64_t> output_shape;
+    Ort::Env env_;
+    Ort::SessionOptions session_options_;
+    std::unique_ptr<Ort::Session> session_;
+    Ort::AllocatorWithDefaultOptions allocator_;
+    std::vector<char> model_bytes_;
+    std::vector<std::string> input_names_;
+    std::vector<std::vector<int64_t>> input_shapes_;
+    std::string output_name_;
+    std::vector<int64_t> output_shape_;
 };
-};
+
+} // namespace isaaclab

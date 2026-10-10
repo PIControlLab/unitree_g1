@@ -18,6 +18,8 @@ public:
         FSMStringMap.insert({state, state_string});
     }
 
+    virtual ~BaseState() = default;
+
     virtual void enter() {}
 
     virtual void pre_run() {}
@@ -25,6 +27,10 @@ public:
     virtual void post_run() {}
 
     virtual void exit() {}
+
+    // Preparation runs outside the control loop; entry may wait for it.
+    virtual void prepare() {}
+    virtual bool can_enter() const { return true; }
 
     std::string getStateString() { return FSMStringMap.left.at(state_); }
     int getState() {return state_; }

@@ -1,68 +1,41 @@
-// Copyright (c) 2025, Unitree Robotics Co., Ltd.
-// All rights reserved.
-
 #pragma once
 
-#include "FSMState.h"
-#include "LinearInterpolator.h"
-#include <chrono>
+#include "FSM/State_CommandBase.h"
+#include <algorithm>
 
-class State_FixStand : public FSMState
+class State_FixStand : public State_CommandBase
 {
 public:
-    State_FixStand(int state, std::string state_string = "FixStand")
-    : FSMState(state, state_string)
+    State_FixStand(int state_mode, const std::string& state_string = "FixStand")
+        : State_CommandBase(state_mode, state_string)
     {
-        ts_ = param::config["FSM"]["FixStand"]["ts"].as<std::vector<float>>();
-        qs_ = param::config["FSM"]["FixStand"]["qs"].as<std::vector<std::vector<float>>>();
-        assert(ts_.size() == qs_.size());
+        target_ = config_["joints"]["default_joint_pos"].as<std::vector<float>>();
+        duration_ = config_["trajectory"]["duration"].as<float>();
     }
 
-    void enter()
+    void enter() override
     {
-        // set gain
-        static auto kp = param::config["FSM"]["FixStand"]["kp"].as<std::vector<float>>();
-        static auto kd = param::config["FSM"]["FixStand"]["kd"].as<std::vector<float>>();
-        for(int i(0); i < kp.size(); ++i)
-        {
-            auto & motor = lowcmd->msg_.motor_cmd()[i];
-            motor.kp() = kp[i];
-            motor.kd() = kd[i];
-            motor.dq() = motor.tau() = 0;
-        }
-
-
-        // set initial position
-        std::vector<float> q0;
-        for(int i(0); i < kp.size(); ++i) {
-            q0.push_back(lowcmd->msg_.motor_cmd()[i].q());
-        }
-        qs_[0] = q0;
-        t0_ = (double)unitree::common::GetCurrentTimeMillisecond() * 1e-3;
-        spdlog::info("FixStand enter: kp_count={} first_target_q={:.4f} current_q0={:.4f}", kp.size(), qs_[1].empty() ? 0.0f : qs_[1][0], q0.empty() ? 0.0f : q0[0]);
+        configure_motors();
+        start_ = current_joint_pos();
+        start_time_ = unitree::common::GetCurrentTimeMillisecond() * 1.0e-3;
     }
 
-    void run()
+    void run() override
     {
-        float t = (double)unitree::common::GetCurrentTimeMillisecond() * 1e-3 - t0_;
-        auto q = linear_interpolate(t, ts_, qs_);
-
-        for(int i(0); i < q.size(); ++i) {
-            lowcmd->msg_.motor_cmd()[i].q() = q[i];
-        }
-
-        const auto now = std::chrono::steady_clock::now();
-        if(!last_log_time_.has_value() || std::chrono::duration<double>(now - *last_log_time_).count() > 0.5) {
-            // removed
-            last_log_time_ = now;
-        }
+        const float elapsed =
+            unitree::common::GetCurrentTimeMillisecond() * 1.0e-3 - start_time_;
+        const float blend = std::clamp(elapsed / duration_, 0.0f, 1.0f);
+        std::vector<float> position(target_.size());
+        for (size_t i = 0; i < position.size(); ++i)
+            position[i] = start_[i] + blend * (target_[i] - start_[i]);
+        write_joint_pos(position);
     }
 
 private:
-    double t0_;
-    std::optional<std::chrono::steady_clock::time_point> last_log_time_;
-    std::vector<float> ts_;
-    std::vector<std::vector<float>> qs_;
+    std::vector<float> start_;
+    std::vector<float> target_;
+    double start_time_ = 0.0;
+    float duration_ = 0.0f;
 };
 
 REGISTER_FSM(State_FixStand)

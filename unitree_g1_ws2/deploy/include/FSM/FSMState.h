@@ -6,16 +6,10 @@
 #include "isaaclab/devices/keyboard/keyboard.h"
 #include "unitree_joystick_dsl.hpp"
 #include "UnitreeJoystickBridge.h"
-#include "ArmBridge.h"
-#include "PolicyPublisher.h"
-#include "memory"
-#include <chrono>
+#include <memory>
 
 namespace test {
     inline std::unique_ptr<UnitreeJoystickBridge> remote_joystick;
-    inline std::unique_ptr<ArmBridge> arm_bridge;
-    inline std::optional<std::chrono::steady_clock::time_point> last_combo_log_time_;
-    inline bool velocity_soft_arms = false;  // WBC/Mimic 退出前设 true，Velocity 据此决定是否软臂
 }
 
 
@@ -68,29 +62,29 @@ public:
             test::remote_joystick->apply(lowstate->joystick);
         }
 
-        auto now = std::chrono::steady_clock::now();
-        if(lowstate->joystick.LT.pressed && lowstate->joystick.up.on_pressed) {
-            test::last_combo_log_time_ = now;
-        }
-        if(lowstate->joystick.RB.pressed && lowstate->joystick.X.on_pressed) {
-            test::last_combo_log_time_ = now;
-        }
-        if(lowstate->joystick.LT.pressed && lowstate->joystick.B.on_pressed) {
-            test::last_combo_log_time_ = now;
-        }
     }
 
     void post_run()
     {
-        if (policy_publisher) {
-            policy_publisher->write(lowcmd->msg_);
-        } else {
+        if (lowcmd->trylock()) {
+            // The SDK worker copies msg_ under this lock after unlockAndPublish().
+            lowcmd->msg_ = command_msg;
             lowcmd->unlockAndPublish();
+            if (publish_lock_misses_ >= 20)
+                spdlog::info("LowCmd publisher recovered after {} missed ticks", publish_lock_misses_);
+            publish_lock_misses_ = 0;
+        } else if (++publish_lock_misses_ == 20 || publish_lock_misses_ % 1000 == 0) {
+            spdlog::warn("LowCmd publisher busy for {} consecutive control ticks", publish_lock_misses_);
         }
     }
 
     static std::unique_ptr<LowCmd_t> lowcmd;
+    // Only the FSM thread writes this staging message. The SDK publisher's
+    // msg_ is touched solely while trylock() is held in post_run().
+    static LowCmd_t::MsgType command_msg;
     static std::shared_ptr<LowState_t> lowstate;
     static std::shared_ptr<Keyboard> keyboard;
-    static std::unique_ptr<PolicyPublisher> policy_publisher;
+
+private:
+    unsigned int publish_lock_misses_ = 0;
 };

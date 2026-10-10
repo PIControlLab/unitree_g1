@@ -1,83 +1,108 @@
-joint_ids_map: [0, 6, 12, 1, 7, 15, 22, 2, 8, 16, 23, 3, 9, 17, 24, 4, 10, 18, 25,
-  5, 11, 20, 27]
-step_dt: 0.02
-stiffness: [100.0, 100.0, 100.0, 150.0, 40.0, 40.0, 100.0, 100.0, 100.0, 150.0, 40.0,
-  40.0, 200.0, 0.0, 0.0, 40.0, 40.0, 40.0, 40.0, 40.0, 0.0, 0.0, 40.0, 40.0, 40.0,
-  40.0, 40.0]
-damping: [2.0, 2.0, 2.0, 4.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 2.0, 2.0, 5.0, 0.0, 0.0,
-  1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-default_joint_pos: [-0.1, -0.1, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0, 0.0, 0.25, -0.25, 0.3,
-  0.3, 0.0, 0.0, -0.2, -0.2, 0.97, 0.97, 0.0, 0.0, 0.15, -0.15]
+schema_version: 2
+robot_profile: config/robot/g1_23dof.yaml
+
+timing:
+  policy_dt: 0.02
+  run_first_step_on_enter: true
+
+joints:
+  joint_names:
+    - left_hip_pitch_joint
+    - right_hip_pitch_joint
+    - waist_yaw_joint
+    - left_hip_roll_joint
+    - right_hip_roll_joint
+    - left_shoulder_pitch_joint
+    - right_shoulder_pitch_joint
+    - left_hip_yaw_joint
+    - right_hip_yaw_joint
+    - left_shoulder_roll_joint
+    - right_shoulder_roll_joint
+    - left_knee_joint
+    - right_knee_joint
+    - left_shoulder_yaw_joint
+    - right_shoulder_yaw_joint
+    - left_ankle_pitch_joint
+    - right_ankle_pitch_joint
+    - left_elbow_joint
+    - right_elbow_joint
+    - left_ankle_roll_joint
+    - right_ankle_roll_joint
+    - left_wrist_roll_joint
+    - right_wrist_roll_joint
+  default_joint_pos:
+    [-0.1, -0.1, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0, 0.0, 0.25, -0.25,
+     0.3, 0.3, 0.0, 0.0, -0.2, -0.2, 0.97, 0.97, 0.0, 0.0, 0.15, -0.15]
+
+control:
+  mode: 1
+  stiffness:
+    [100, 100, 200, 100, 100, 40, 40, 100, 100, 40, 40, 150, 150, 40, 40,
+     40, 40, 40, 40, 40, 40, 40, 40]
+  damping:
+    [2, 2, 5, 2, 2, 1, 1, 2, 2, 1, 1, 4, 4, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1]
+  effort_limit:
+    [139, 139, 88, 139, 139, 25, 25, 88, 88, 25, 25, 139, 139, 25, 25,
+     50, 50, 25, 25, 50, 50, 25, 25]
+
+model:
+  policy:
+    files: [config/policy/unitree_g1_23dof_velocity/exported/policy.onnx]
+
 commands:
   base_velocity:
     ranges:
       lin_vel_x: [-0.6, 1.0]
       lin_vel_y: [-0.5, 0.5]
       ang_vel_z: [-0.5, 0.5]
-      heading: null
-actions:
-  JointPositionAction:
-    clip:
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    - [-1.0, 1.0]
-    joint_names: [.*]
-    scale: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
-      0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
-    offset: [-0.1, -0.1, 0.0, 0.0, 0.0, 0.3, 0.3, 0.0, 0.0, 0.25, -0.25, 0.3, 0.3,
-      0.0, 0.0, -0.2, -0.2, 0.97, 0.97, 0.0, 0.0, 0.15, -0.15]
-    joint_ids: null
+
 observations:
-  base_ang_vel:
-    params: {}
-    clip: null
-    scale: [0.2, 0.2, 0.2]
-    history_length: 5
-  projected_gravity:
-    params: {}
-    clip: null
-    scale: [1.0, 1.0, 1.0]
-    history_length: 5
-  velocity_commands:
-    params: {command_name: base_velocity}
-    clip: null
-    scale: [1.0, 1.0, 1.0]
-    history_length: 5
-  joint_pos_rel:
-    params: {}
-    clip: null
-    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    history_length: 5
-  joint_vel_rel:
-    params: {}
-    clip: null
-    scale: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05,
-      0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
-    history_length: 5
-  last_action:
-    params: {}
-    clip: null
-    scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    history_length: 5
+  obs:
+    blocks:
+      - layout: term_major
+        terms:
+          - source: base_ang_vel
+            scale: [0.2, 0.2, 0.2]
+            history: &velocity_history
+              {length: 5, order: oldest_to_newest, reset: repeat_first, update_phase: before_inference}
+          - source: projected_gravity
+            scale: [1.0, 1.0, 1.0]
+            history: *velocity_history
+          - source: velocity_commands
+            params: {command_name: base_velocity}
+            scale: [1.0, 1.0, 1.0]
+            history: *velocity_history
+          - source: joint_pos_rel
+            scale: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            history: *velocity_history
+          - source: joint_vel
+            scale: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05,
+                    0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+            history: *velocity_history
+          - source: last_action
+            scale: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            history: *velocity_history
+
+actions:
+  type: joint_position
+  raw_action_scale: 1.0
+  raw_action_clip: null
+  action_target_scale:
+    [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
+     0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+  add_default_joint_pos: true
+  position_clip:
+    [[-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1],
+     [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1],
+     [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1], [-1, 1]]
+  effort_limit_mode: none
+
+handover:
+  position_blend_duration: 0.0
+
+safety:
+  bad_orientation:
+    enabled: true
+    threshold_rad: 1.0
+    warmup_steps: 1000
+    target_state: Passive

@@ -1,0 +1,98 @@
+schema_version: 2
+robot_profile: config/robot/g1_23dof.yaml
+
+timing:
+  policy_dt: 0.02
+  run_first_step_on_enter: false
+
+joints:
+  joint_names:
+    [left_hip_pitch_joint, left_hip_roll_joint, left_hip_yaw_joint,
+     left_knee_joint, left_ankle_pitch_joint, left_ankle_roll_joint,
+     right_hip_pitch_joint, right_hip_roll_joint, right_hip_yaw_joint,
+     right_knee_joint, right_ankle_pitch_joint, right_ankle_roll_joint,
+     waist_yaw_joint,
+     left_shoulder_pitch_joint, left_shoulder_roll_joint,
+     left_shoulder_yaw_joint, left_elbow_joint, left_wrist_roll_joint,
+     right_shoulder_pitch_joint, right_shoulder_roll_joint,
+     right_shoulder_yaw_joint, right_elbow_joint, right_wrist_roll_joint]
+  default_joint_pos:
+    [-0.1, 0, 0, 0.3, -0.2, 0, -0.1, 0, 0, 0.3, -0.2, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+control:
+  mode: 1
+  stiffness:
+    [99.09843, 99.09843, 40.17924, 99.09843, 28.50125, 28.50125,
+     99.09843, 99.09843, 40.17924, 99.09843, 28.50125, 28.50125, 300.0,
+     14.25062, 14.25062, 14.25062, 14.25062, 14.25062,
+     14.25062, 14.25062, 14.25062, 14.25062, 14.25062]
+  damping:
+    [6.3088, 6.3088, 2.55789, 6.3088, 1.81445, 1.81445,
+     6.3088, 6.3088, 2.55789, 6.3088, 1.81445, 1.81445, 5.0,
+     0.90722, 0.90722, 0.90722, 0.90722, 0.90722,
+     0.90722, 0.90722, 0.90722, 0.90722, 0.90722]
+  effort_limit:
+    [139, 139, 88, 139, 50, 50, 139, 139, 88, 139, 50, 50, 88,
+     25, 25, 25, 25, 25, 25, 25, 25, 25, 25]
+
+model:
+  preload_on_start: true
+  policy:
+    files:
+      - config/policy/ufo/model/FBcprAuxModel.onnx.part00
+      - config/policy/ufo/model/FBcprAuxModel.onnx.part01
+
+latents:
+  catalog: config/policy/ufo/latent_catalog.json
+  selection_file: /dev/shm/unitree_ufo_selection.json
+  hold_after_finished: goal_reaching/stand_pose
+
+observations:
+  actor_obs:
+    blocks:
+      - layout: term_major
+        terms:
+          - {source: joint_pos_rel}
+          - {source: joint_vel}
+          - {source: projected_gravity}
+          - {source: base_ang_vel, scale: [0.25, 0.25, 0.25]}
+      - layout: term_major
+        terms:
+          - {source: last_action}
+      - layout: term_major
+        terms:
+          - source: last_action
+            history: &ufo_history
+              {length: 4, order: newest_to_oldest, reset: zeros, update_phase: after_inference}
+          - {source: base_ang_vel, scale: [0.25, 0.25, 0.25], history: *ufo_history}
+          - {source: joint_pos_rel, history: *ufo_history}
+          - {source: joint_vel, history: *ufo_history}
+          - {source: projected_gravity, history: *ufo_history}
+      - layout: term_major
+        terms:
+          - {source: reference_latent}
+
+actions:
+  type: joint_position
+  raw_action_scale: 5.0
+  raw_action_clip: [-5.0, 5.0]
+  action_target_scale:
+    [0.350661459, 0.350661459, 0.547546444, 0.350661459, 0.438577255,
+     0.438577255, 0.350661459, 0.350661459, 0.547546444, 0.350661459,
+     0.438577255, 0.438577255, 0.0733333333, 0.438577409, 0.438577409,
+     0.438577409, 0.438577409, 0.438577409, 0.438577409, 0.438577409,
+     0.438577409, 0.438577409, 0.438577409]
+  add_default_joint_pos: true
+  position_clip: null
+  effort_limit_mode: equivalent_position
+
+handover:
+  position_blend_duration: 1.0
+
+safety:
+  bad_orientation:
+    enabled: false
+    threshold_rad: 1.0
+    warmup_steps: 1000
+    target_state: Passive

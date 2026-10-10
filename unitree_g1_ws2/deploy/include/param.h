@@ -115,6 +115,11 @@ inline std::filesystem::path parser_policy_dir(std::filesystem::path policy_dir)
     return policy_dir;
 }
 
+inline std::filesystem::path resolve_path(std::filesystem::path path)
+{
+    return path.is_relative() ? proj_dir / path : path;
+}
+
 /* ---------- Command Line Parameters ---------- */
 namespace po = boost::program_options;
 
@@ -129,7 +134,7 @@ inline po::variables_map helper(int argc, char** argv)
         ("help,h", "produce help message")
         ("version,v", "show version")
         ("log", "record log file")
-        ("network,n", po::value<std::string>()->default_value(""), "dds network interface")
+        ("network,n", po::value<std::string>()->default_value("eth0"), "dds network interface")
         ;
 
     po::variables_map vm;

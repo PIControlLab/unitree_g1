@@ -35,8 +35,13 @@ public:
         data.projected_gravity_b = data.root_quat_w.conjugate() * data.GRAVITY_VEC_W;
         // joint positions and velocities
         for(int i(0); i< data.joint_ids_map.size(); i++) {
-            data.joint_pos[i] = lowstate->msg_.motor_state()[data.joint_ids_map[i]].q();
-            data.joint_vel[i] = lowstate->msg_.motor_state()[data.joint_ids_map[i]].dq();
+            if (data.joint_active[i]) {
+                data.joint_pos[i] = lowstate->msg_.motor_state()[data.joint_ids_map[i]].q();
+                data.joint_vel[i] = lowstate->msg_.motor_state()[data.joint_ids_map[i]].dq();
+            } else {
+                data.joint_pos[i] = data.default_joint_pos[i];
+                data.joint_vel[i] = 0.0f;
+            }
         }
     }
 
